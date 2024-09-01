@@ -37,7 +37,7 @@ int main() {
 
     //Drag
     const double AirDens = 1.293;
-    const double Cd = 1.15;
+    const double Cd = 1.1;
 
     //Magnetic Field
     //https://quickfield.com/advanced/biot-savart_law.htm
