@@ -10,8 +10,8 @@ int main() {
 
     //Time
     double t = 0;
-    const double dt = 0.00000001;
-    const double TargetT = 1;
+    const long double dt = 0.000000001;
+    const long double TargetT = 5;
 
     //Armature
     const double ArmLen = 0.1;
