@@ -73,6 +73,9 @@ int main() {
     double MagDist = ArmWidth / 2;
     double magField;
 
+    //Inductance gradient for railgun force
+    double IndGrad = 1;
+
     //Armature variables
     double acc;
     double vel;
@@ -123,6 +126,12 @@ int main() {
                 //Calculate Lorentz force
                 F_l = magField*I*ArmWidth;
 
+                /*
+                With railgun force equation
+                F_l = 0.5 * IndGrad * pow(I, 2);
+
+                */
+                
                 //Save highest current for results, which is at t=0
                 if(t == 0) {
 
@@ -130,6 +139,8 @@ int main() {
                     MaxMag = magField;
 
                 }
+
+
 
             }
             //if projectile is outside of barrel Lorentz force is 0
