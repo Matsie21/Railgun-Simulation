@@ -10,24 +10,25 @@ int main() {
 
     //Time
     double t = 0;
-    const long double dt = 0.0000001;
+    const long double dt = 0.000000001;
     const long double TargetT = 1;
 
     //Armature
-    const double ArmLen = 0.1;
-    const double AW_H = 0.2;
-    const double Density = 8.94 * pow(10, 3);
-    double mass = ArmLen*pow(AW_H, 2)*Density;
-    double FrontArea = AW_H * ArmLen;
+    const double ArmWidth = 0.05;
+    const double ArmHeight = 0.05;
+    const double ArmLength = 0.1;
+    const double Density = 2.710 * pow(10, 3);
+    double mass = ArmWidth*ArmHeight*ArmLength*Density;
+    double FrontArea = ArmHeight * ArmWidth;
 
     //Rails
-    const double RailLen = 3;
+    const double RailLen = 6;
     const double RW_H = 0.2;
 
     //Resistance
-    const double ResMultip = 0.0000000175;
-    double TotalLen = ArmLen + 2*RailLen;
-    double Area = pow(AW_H, 2);
+    const double ResMultip = 0.0265 * pow(10, -6);
+    double TotalLen = ArmWidth + 2*RailLen;
+    double Area = ArmHeight*ArmLength;
     double Res;
 
     //Capacitors
@@ -42,7 +43,7 @@ int main() {
     //Magnetic Field
     //https://quickfield.com/advanced/biot-savart_law.htm
     const double mu0 = 4 * pi * pow(10, -7);
-    double MagDist = ArmLen / 2;
+    double MagDist = ArmWidth / 2;
     double magField;
 
     //Projectile
@@ -73,7 +74,7 @@ int main() {
 
             if(dist < RailLen) {
 
-                Res = (ResMultip*(ArmLen+(2*dist)))/Area;
+                Res = (ResMultip*(ArmWidth+(2*dist)))/Area;
 
                 v = v0 / (pow(e, (t / (Res*capa))));
 
@@ -81,7 +82,7 @@ int main() {
 
                 magField = 2 * ((mu0 * I) / (2 * pi * MagDist));
 
-                F_l = magField*I*ArmLen;
+                F_l = magField*I*ArmWidth;
 
                 if(t == 0) {
 
