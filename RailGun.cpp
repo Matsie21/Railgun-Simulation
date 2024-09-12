@@ -11,7 +11,7 @@ int main() {
     //Time
     double t = 0;
     const long double dt = 0.000000001;
-    const long double TargetT = 5;
+    const long double TargetT = 1;
 
     //Armature
     const double ArmLen = 0.1;
