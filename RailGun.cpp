@@ -54,7 +54,7 @@ int main() {
     double I;
     double F_l;
     double F_d;
-    double F_r = mass*9.81*0.2;
+    double F_r = mass*9.81*0.4;
     double F;
 
     double MaxVel;
@@ -136,6 +136,7 @@ int main() {
     std::cout << "Max Fd: " << MaxFd << '\n';
     std::cout << "Max I: " << MaxI << '\n';
     std::cout << "Max Mag: " << MaxMag << '\n';
+    std::cout << "Resis: " << Res << '\n';
 
     return 0;
 }
