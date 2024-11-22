@@ -12,12 +12,13 @@ using t_simfloat = double;
 */
 
 //General simulation settings
-const t_simfloat dt_in = 0;     //Timestep inside railgun
-const t_simfloat dt_out = 0;    //Timestep outside railgun
+const t_simfloat dt_in = 0;         //Timestep inside railgun
+const t_simfloat dt_out = 0;        //Timestep outside railgun
 
 //Standard units
 const t_simfloat AirDens = 0;
 const t_simfloat g = 0;
+const t_simfloat RoomTemp = 273;    //In Kelvin
 
 //Friction coefficients between armature, and rails and plates
 const t_simfloat mu_s = 0;
@@ -113,12 +114,7 @@ t_simfloat P = 0;
     Formulas
 */
 
-//Drag (Air Resistance)
-inline t_simfloat F_drag(t_simfloat AirDensity, t_simfloat c_w, t_simfloat A, t_simfloat ProjectileSpeed) {
-    return ((t_simfloat)0.5) * AirDens * c_w * A * pow(ProjectileSpeed, 2);
-}
-
-// Inductance gradient, this should only be computed once, and then cached
+// Inductance gradient, this should only be computed once, and then cached. Can also be changed to a constant if known
 t_simfloat numerator = pow(10, -6);
 t_simfloat denominator =
     (((t_simfloat)0.5986) * (h_r / w_a)) +
@@ -129,6 +125,55 @@ t_simfloat denominator =
     ))) -
     ((t_simfloat)0.7831);
 t_simfloat IndGrad = t_simfloat(numerator / denominator);
+
+//Drag (Air Resistance)
+inline t_simfloat calc_F_d(t_simfloat AirDensity, t_simfloat c_w, t_simfloat A, t_simfloat ProjectileSpeed) {
+    return ((t_simfloat)0.5) * AirDens * c_w * A * pow(ProjectileSpeed, 2);
+}
+
+//Current
+inline t_simfloat calc_I(t_simfloat CurrentZero, t_simfloat time, t_simfloat Resistance, t_simfloat Capacity) {
+    return CurrentZero * exp(-t / (Resistance*Capacity));
+}
+
+// Lorentz force
+inline t_simfloat calc_F_l(t_simfloat Current, t_simfloat InductionGradient) {
+    return ((t_simfloat)0.5) * InductionGradient * pow(Current, 2);
+}
+
+//Friction forces
+inline t_simfloat calc_F_f_pl_d(t_simfloat mu, t_simfloat Pressure, t_simfloat Area, t_simfloat Gravity) {
+    return mu * ((Pressure*Area) + Gravity);
+}
+inline t_simfloat calc_F_f_other(t_simfloat mu, t_simfloat Pressure, t_simfloat Area) {
+    return mu * (Pressure*Area);
+}
+
+//Total energy used in timestep
+inline t_simfloat calc_E_tot(t_simfloat Current, t_simfloat Resistance, t_simfloat deltaTime) {
+    return pow(Current, 2) * Resistance * deltaTime;
+}
+
+//Heat absorbed by object
+inline t_simfloat calc_Q_obj(t_simfloat ObjectFriction, t_simfloat deltaDistance) {
+    return ((t_simfloat)0.5) * ObjectFriction * deltaDistance;
+}
+
+//New object temperature
+inline t_simfloat calc_T_obj(t_simfloat Temp, t_simfloat Heat, t_simfloat SpecificHeat, t_simfloat mass) {
+    return Temp + (Heat / (SpecificHeat * mass));
+}
+
+//Armature Volume Increase
+inline t_simfloat calc_dV(t_simfloat VolumeZero, t_simfloat VolumetricConstant, t_simfloat Temp) {
+    return VolumeZero * VolumetricConstant * (Temp -RoomTemp);
+}
+
+//Armature Pressure
+inline t_simfloat calc_P(t_simfloat Heat, t_simfloat deltaVolume) {
+    return Heat / deltaVolume;
+}
+
 
 int main() {
 
@@ -168,7 +213,7 @@ int main() {
     //Loop while armature is inside railgun
     while (dist < l_r) {
 
-        //
+        break;
 
     }
 
@@ -179,9 +224,11 @@ int main() {
     //Loop for armature outside railgun
     while (speed >= 0) {
 
-        //
+        break;
 
     }
 
+
+    std::cout << "Done!";
     return 0;
 }
