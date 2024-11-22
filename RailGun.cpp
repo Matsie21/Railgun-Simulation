@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include <conio.h>
+#include <vector>
 #include "progressbar.hpp"
 
 //Quickly change standard datatype
@@ -11,7 +12,6 @@ using t_simfloat = double;
 */
 
 //General simulation settings
-const t_simfloat t = 0;
 const t_simfloat dt_in = 0;     //Timestep inside railgun
 const t_simfloat dt_out = 0;    //Timestep outside railgun
 
@@ -52,9 +52,34 @@ const t_simfloat A_pw = 0;
 const t_simfloat resistiv_pw = 0;
 
 //Properties of powersupply
-bool ConstPower = false;
+const bool ConstPower = false;
 const t_simfloat C = 0;
 const t_simfloat U0 = 0;
+
+
+/*
+    Variables during simulation
+*/
+
+//Current time
+t_simfloat t = 0;
+
+//Positional variables
+t_simfloat acc = 0;
+t_simfloat speed = 0;
+t_simfloat dist = 0;
+t_simfloat ddist = 0;
+
+//Vector positional variables
+std::vector<t_simfloat> acc = {0,0};
+std::vector<t_simfloat> vel = {0,0};
+std::vector<t_simfloat> loc = {0,0};
+
+//Electrical variables
+t_simfloat R = 0;
+t_simfloat U = 0;
+t_simfloat I = 0;
+
 
 
 
@@ -66,6 +91,24 @@ int main() {
 
    //Armature
    
+
+    //Loop while armature is inside railgun
+    while (dist < l_r) {
+
+        //
+
+    }
+
+    //Convert to vectors
+    vel[0] = speed;
+    loc[0] = dist;
+
+    //Loop for armature outside railgun
+    while (speed >= 0) {
+
+        //
+
+    }
 
     return 0;
 }
