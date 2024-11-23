@@ -5,58 +5,58 @@
 #include "progressbar.hpp"
 
 //Quickly change standard datatype
-using t_simfloat = double;
+using t_simfloat = long double;
 
 /*
         Changeable variables
 */
 
 //General simulation settings
-const t_simfloat dt_in = 0;         //Timestep inside railgun
+const t_simfloat dt_in = 1 * pow(10, -6);         //Timestep inside railgun
 const t_simfloat dt_out = 0;        //Timestep outside railgun
 
 //Standard units
-const t_simfloat AirDens = 0;
-const t_simfloat g = 0;
-const t_simfloat RoomTemp = 273;    //In Kelvin
+const t_simfloat AirDens = 1.293;   //kg/m3
+const t_simfloat g = 9.81;
+const t_simfloat RoomTemp = 293;    //In Kelvin
 
 //Friction coefficients between armature, and rails and plates
-const t_simfloat mu_s = 0;
-const t_simfloat mu_k = 0;
+const t_simfloat mu_s = 1.5;          
+const t_simfloat mu_k = 1.1;
 
 //Properties of individual rails
-const t_simfloat l_r = 0;
-const t_simfloat w_r = 0;
-const t_simfloat h_r = 0;
-const t_simfloat dens_r = 0;
-const t_simfloat resistiv_r = 0;
-const t_simfloat SpecHeat_r = 0;
+const t_simfloat l_r = 2;
+const t_simfloat w_r = 0.05;
+const t_simfloat h_r = 0.05;
+const t_simfloat dens_r = 8.933 * pow(10, 3);
+const t_simfloat resistiv_r = 1.678 * pow(10, -8);
+const t_simfloat SpecHeat_r = 384;
 
 //Properties of armature
-const t_simfloat l_a = 0;
-const t_simfloat w_a = 0;
-const t_simfloat h_a = 0;
-const t_simfloat dens_a = 0;
-const t_simfloat resistiv_a = 0;
-const t_simfloat SpecHeat_a = 0;
-const t_simfloat alpha_V = 0;
-const t_simfloat c_w_in = 0;    //c_w changes because the air can't go around as easily inside the railgun
-const t_simfloat c_w_out = 0;
+const t_simfloat l_a = 0.05;
+const t_simfloat w_a = 0.05;
+const t_simfloat h_a = 0.05;
+const t_simfloat dens_a = 8.933 * pow(10, 3);
+const t_simfloat resistiv_a = 1.678 * pow(10, -8);
+const t_simfloat SpecHeat_a = 384;
+const t_simfloat alpha_V = 49.5 * pow(10, -6);
+const t_simfloat c_w_in = 1.05;    //c_w changes because the air can't go around as easily inside the railgun
+const t_simfloat c_w_out = 1.05;
 
 //Properties of plates
-const t_simfloat h_pl = 0;
-const t_simfloat dens_pl = 0;
-const t_simfloat SpecHeat_pl = 0;
+const t_simfloat h_pl = 0.03;
+const t_simfloat dens_pl = 8.933 * pow(10, 3);
+const t_simfloat SpecHeat_pl =384;
 
 //Properties of power wires
-const t_simfloat l_pw = 0;
-const t_simfloat A_pw = 0;
-const t_simfloat resistiv_pw = 0;
+const t_simfloat l_pw = 0.6;
+const t_simfloat A_pw = 0.000078539;
+const t_simfloat resistiv_pw = 1.678 * pow(10, -8);
 
 //Properties of powersupply
 const bool ConstPower = false;
-const t_simfloat C = 0;
-const t_simfloat U0 = 0;
+const t_simfloat C = 160000 * pow(10, -6);
+const t_simfloat U0 = 300;
 
 
 
@@ -64,6 +64,9 @@ const t_simfloat U0 = 0;
 /*
     Variables during simulation
 */
+
+//Iterations
+t_simfloat it = 0;
 
 //Current time
 t_simfloat t = 0;
@@ -112,6 +115,10 @@ t_simfloat T_pl_d = RoomTemp;
 t_simfloat dV_a = 0;
 t_simfloat P = 0;
 
+//Debug
+t_simfloat F_l0;
+t_simfloat speed0;
+
 
 
 /*
@@ -125,7 +132,7 @@ inline t_simfloat calc_F_d(t_simfloat AirDensity, t_simfloat c_w, t_simfloat A, 
 
 //Current
 inline t_simfloat calc_I(t_simfloat CurrentZero, t_simfloat time, t_simfloat Resistance, t_simfloat Capacity) {
-    return CurrentZero * exp(-t / (Resistance*Capacity));
+    return CurrentZero * exp(((t_simfloat)-1)* t / (Resistance*Capacity));
 }
 
 // Lorentz force
@@ -249,6 +256,9 @@ int main() {
 
         //Calculate total force
         F = F_l - F_d - F_f_tot;
+        if (F < 0) {
+            F = 0;
+        }
 
         //Calculate movement
         acc = F / m_a;
@@ -281,6 +291,41 @@ int main() {
         R_r = calc_R_obj(T_r, (dist + l_a), Afront_r);
         R_a = calc_R_obj(T_a, w_a, Aside_a);
 
+        //Increment time
+        t += dt;
+        it += 1;
+
+
+        /*
+            Debug
+        */
+        if (it == 1) {
+            F_l0 = F_l;
+            speed0 = speed;
+        }
+        if (it == 272643) {
+
+            std::cout << "Almost last itertation \n";
+            std::cout << "Time: " << t << "\n";
+            std::cout << "Iterations: " << it << "\n";
+            std::cout << "Current: " << I << "\n";
+            std::cout << "T_a: " << T_a << "\n";
+            std::cout << "acc: " << acc << "\n";
+            std::cout << "F_l: " << F_l << "\n";
+            std::cout << "F_l0: " << F_l0 << "\n";
+            std::cout << "R, U, I" << R0 << " " << U0 << " " << I0 << " " << "\n";
+            std::cout << "Dist: " << dist << "\n";
+            std::cout << "F: " << F << "\n";
+            std::cout << "F_d: " << F_d << "\n";
+            std::cout << "F_f_tot: " << F_f_tot << "\n";
+            std::cout << "speed: " << speed << "\n";
+            std::cout << "speed0: " << speed0 << "\n";
+
+        }
+        //std::cout << it;
+
+
+
     }
 
     //Convert to vectors
@@ -297,5 +342,18 @@ int main() {
 
     std::cout << "Done! \n";
     std::cout << "Time: " << t << "\n";
+    std::cout << "Iterations: " << it << "\n";
+    std::cout << "Current: " << I << "\n";
+    std::cout << "T_a: " << T_a << "\n";
+    std::cout << "acc: " << acc << "\n";
+    std::cout << "F_l: " << F_l << "\n";
+    std::cout << "F_l0: " << F_l0 << "\n";
+    std::cout << "R, U, I" << R0 << " " << U0 << " " << I0 << " " << "\n";
+    std::cout << "Dist: " << dist << "\n";
+    std::cout << "F: " << F << "\n";
+    std::cout << "F_d: " << F_d << "\n";
+    std::cout << "F_f_tot: " << F_f_tot << "\n";
+    std::cout << "speed: " << speed << "\n";
+    std::cout << "speed0: " << speed0 << "\n";
     return 0;
 }
