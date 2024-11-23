@@ -12,7 +12,7 @@ using t_simfloat = long double;
 */
 
 //General simulation settings
-const t_simfloat dt_in = 1 * pow(10, -6);         //Timestep inside railgun
+const t_simfloat dt_in = 1 * pow(10, -9);         //Timestep inside railgun
 const t_simfloat dt_out = 0;        //Timestep outside railgun
 
 //Standard units
@@ -33,7 +33,7 @@ const t_simfloat resistiv_r = 1.678 * pow(10, -8);
 const t_simfloat SpecHeat_r = 384;
 
 //Properties of armature
-const t_simfloat l_a = 0.05;
+const t_simfloat l_a = 0.08;
 const t_simfloat w_a = 0.05;
 const t_simfloat h_a = 0.05;
 const t_simfloat dens_a = 8.933 * pow(10, 3);
@@ -49,14 +49,14 @@ const t_simfloat dens_pl = 8.933 * pow(10, 3);
 const t_simfloat SpecHeat_pl =384;
 
 //Properties of power wires
-const t_simfloat l_pw = 0.6;
-const t_simfloat A_pw = 0.000078539;
+const t_simfloat l_pw = 1;
+const t_simfloat A_pw = 0.000314159265359;
 const t_simfloat resistiv_pw = 1.678 * pow(10, -8);
 
 //Properties of powersupply
 const bool ConstPower = false;
 const t_simfloat C = 160000 * pow(10, -6);
-const t_simfloat U0 = 300;
+const t_simfloat U0 = 400;
 
 
 
@@ -118,6 +118,7 @@ t_simfloat P = 0;
 //Debug
 t_simfloat F_l0;
 t_simfloat speed0;
+t_simfloat speedmax = 0;
 
 
 
@@ -160,7 +161,7 @@ inline t_simfloat calc_dT_obj(t_simfloat Heat, t_simfloat SpecificHeat, t_simflo
 
 //Armature Volume Increase
 inline t_simfloat calc_dV(t_simfloat VolumeZero, t_simfloat VolumetricConstant, t_simfloat Temp) {
-    return VolumeZero * VolumetricConstant * (Temp -RoomTemp);
+    return VolumeZero * VolumetricConstant * (Temp - RoomTemp);
 }
 
 //Armature Pressure
@@ -247,18 +248,23 @@ int main() {
         } else {
             mu_curr = mu_k;
         }
-        
-        //Calculate friction forces
-        F_f_pl_d = calc_F_f_pl_d(mu_curr, P, Atop_a, F_g);
-        F_f_pl_u = calc_F_f_other(mu_curr, P, Atop_a);
-        F_f_r = calc_F_f_other(mu_curr, P, Aside_a);
-        F_f_tot = F_f_pl_d + F_f_pl_u + (2*F_f_r);
+
+        //Check if friction forces apply
+        if (speed < 0) {
+            std::cout << "Speed negative aborting. Iteration: ";
+            std::cout << it << "\n";
+            std::cout << "Speed: " << speed << "\n";
+            return 1;
+        } else {
+            //Calculate friction forces
+            F_f_pl_d = calc_F_f_pl_d(mu_curr, P, Atop_a, F_g);
+            F_f_pl_u = calc_F_f_other(mu_curr, P, Atop_a);
+            F_f_r = calc_F_f_other(mu_curr, P, Aside_a);
+            F_f_tot = F_f_pl_d + F_f_pl_u + (2*F_f_r);
+        }
 
         //Calculate total force
         F = F_l - F_d - F_f_tot;
-        if (F < 0) {
-            F = 0;
-        }
 
         //Calculate movement
         acc = F / m_a;
@@ -299,11 +305,14 @@ int main() {
         /*
             Debug
         */
+
         if (it == 1) {
             F_l0 = F_l;
             speed0 = speed;
+            std::cout << "Rendement: " << E_use/E_tot << "\n";
+            std::cout << "F_f0: " << F_f_tot << "\n";
         }
-        if (it == 272643) {
+        if (it == 2) {
 
             std::cout << "Almost last itertation \n";
             std::cout << "Time: " << t << "\n";
@@ -320,13 +329,30 @@ int main() {
             std::cout << "F_f_tot: " << F_f_tot << "\n";
             std::cout << "speed: " << speed << "\n";
             std::cout << "speed0: " << speed0 << "\n";
+            std::cout << "F_f_r: " << F_f_r << "\n";
+            std::cout << "F_f_pl_u: " << F_f_pl_u << "\n";
+            std::cout << "F_f_pl_d: " << F_f_pl_d << "\n";
+            std::cout << "Pressure: " << P << "\n";
+            std::cout << "dV: " << dV_a << "\n";
+            std::cout << "Heat: " << Q_a << "\n";
+            std::cout << "\n";
 
         }
         //std::cout << it;
 
+        if (speed > speedmax) {
+            speedmax = speed;
+        }
+
 
 
     }
+
+    t_simfloat E_cap = 0.5*C*pow(U0, 2);
+    t_simfloat E_kin = 0.5*m_a*pow(speed, 2);
+
+    t_simfloat AfvuurRendement = E_kin / E_cap;
+    std::cout << "Totaal rendement: " << AfvuurRendement << "\n";
 
     //Convert to vectors
     vel_v[0] = speed;
@@ -355,5 +381,6 @@ int main() {
     std::cout << "F_f_tot: " << F_f_tot << "\n";
     std::cout << "speed: " << speed << "\n";
     std::cout << "speed0: " << speed0 << "\n";
+    std::cout << "SpeedMax: " << speedmax << "\n";
     return 0;
 }
