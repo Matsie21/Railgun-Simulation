@@ -106,6 +106,7 @@ t_simfloat Q_pl_u = 0;
 t_simfloat Q_pl_d = 0;
 t_simfloat Q_r = 0;
 t_simfloat Q_a = 0;
+t_simfloat Q_a_tot = 0;
 t_simfloat Qtot = 0;
 t_simfloat T_a = RoomTemp;
 t_simfloat T_r = RoomTemp;
@@ -255,6 +256,9 @@ int main() {
             std::cout << "Speed negative aborting. Iteration: ";
             std::cout << it << "\n";
             std::cout << "Speed: " << speed << "\n";
+            std::cout << "Q_a: " << Q_a << "\n";
+            std::cout << "T_a: " << T_a << "\n";
+            std::cout << "P: " << P << "\n";
             return 1;
         } else {
             //Calculate friction forces
@@ -267,7 +271,7 @@ int main() {
         //Calculate total force
         F = F_l - F_d - F_f_tot;
         //std::cout << it << "\n";
-        std::cout << "speed: " << speed << "\n";
+        //std::cout << "speed: " << speed << "\n";
         //std::cout << "dist: " << dist << "\n";
         //std::cout << "P: " << P << "\n";
         //std::cout << "F_l: " << F_l << "\n";
@@ -291,6 +295,7 @@ int main() {
         Q_pl_u = calc_Q_obj(F_f_pl_u, ddist);
         Q_r = calc_Q_obj(F_f_r, ddist);
         Q_a = Q_pl_d + Q_pl_u + Q_r;
+        Q_a_tot += Q_a;
 
         //Calculate new temperatures
         T_pl_d += calc_dT_obj(Q_pl_d, SpecHeat_pl, m_pl);
@@ -300,7 +305,8 @@ int main() {
 
         //Calculate pressure of armature
         dV_a = calc_dV(V0_a, alpha_V, T_a);
-        P = 0; //calc_P(Q_a, dV_a); // TODO Pressure is way too high
+        V_a += dV_a;
+        P = calc_P(Q_a, V_a); // TODO Pressure is way too high
 
         //Calculate new resistances
         R_r = calc_R_obj(T_r, (dist + l_a), Afront_r);
@@ -315,7 +321,7 @@ int main() {
             Debug
         */
 
-        /*if (it == 1) {
+        if (it == 1) {
             F_l0 = F_l;
             speed0 = speed;
             std::cout << "Rendement: " << E_use/E_tot << "\n";
@@ -346,14 +352,14 @@ int main() {
             std::cout << "Heat: " << Q_a << "\n";
             std::cout << "\n";
 
-        }*/
+        }
         //std::cout << it;
 
         if (speed > speedmax) {
             speedmax = speed;
         }
     }
-    return 0;
+    //return 0;
 
     t_simfloat E_cap = 0.5*C*pow(U0, 2);
     t_simfloat E_kin = 0.5*m_a*pow(speed, 2);
