@@ -2,29 +2,29 @@
 #include <cmath>
 #include <conio.h>
 #include <vector>
-#include "progressbar.hpp"
 
-//Quickly change standard datatype
+// Quickly change the datatype used by the simulation
 using t_simfloat = long double;
 
-/*
-        Changeable variables
-*/
+// -----------------------------
+// Changeable variables
+// -----------------------------
+#pragma region constvars
 
-//General simulation settings
-const t_simfloat dt_in = 1 * pow(10, -9);         //Timestep inside railgun
-const t_simfloat dt_out = 0;        //Timestep outside railgun
+// General simulation settings
+const t_simfloat dt_in = 1 * pow(10, -5);        // Timestep inside railgun
+const t_simfloat dt_out = 0;                        // Timestep outside railgun
 
-//Standard units
-const t_simfloat AirDens = 1.293;   //kg/m3
-const t_simfloat g = 9.81;
-const t_simfloat RoomTemp = 293;    //In Kelvin
+// Standard units
+const t_simfloat AirDens = 1.293;   // kg/m3
+const t_simfloat g = 9.81;         // TODO g can be more precise than 9.81
+const t_simfloat RoomTemp = 293;  // In Kelvin
 
-//Friction coefficients between armature, and rails and plates
-const t_simfloat mu_s = 1.5;          
+// Friction coefficients between armature, and rails and plates
+const t_simfloat mu_s = 1.5;
 const t_simfloat mu_k = 1.1;
 
-//Properties of individual rails
+// Properties of individual rails
 const t_simfloat l_r = 2;
 const t_simfloat w_r = 0.05;
 const t_simfloat h_r = 0.05;
@@ -32,7 +32,7 @@ const t_simfloat dens_r = 8.933 * pow(10, 3);
 const t_simfloat resistiv_r = 1.678 * pow(10, -8);
 const t_simfloat SpecHeat_r = 384;
 
-//Properties of armature
+// Properties of armature
 const t_simfloat l_a = 0.08;
 const t_simfloat w_a = 0.05;
 const t_simfloat h_a = 0.05;
@@ -43,54 +43,53 @@ const t_simfloat alpha_V = 49.5 * pow(10, -6);
 const t_simfloat c_w_in = 1.05;    //c_w changes because the air can't go around as easily inside the railgun
 const t_simfloat c_w_out = 1.05;
 
-//Properties of plates
+// Properties of plates
 const t_simfloat h_pl = 0.03;
 const t_simfloat dens_pl = 8.933 * pow(10, 3);
 const t_simfloat SpecHeat_pl =384;
 
-//Properties of power wires
+// Properties of power wires
 const t_simfloat l_pw = 1;
 const t_simfloat A_pw = 0.000314159265359;
 const t_simfloat resistiv_pw = 1.678 * pow(10, -8);
 
-//Properties of powersupply
+// Properties of powersupply
 const bool ConstPower = false;
 const t_simfloat C = 160000 * pow(10, -6);
 const t_simfloat U0 = 400;
 
+#pragma endregion constvars
+// -----------------------------
+// Variables during simulation
+// -----------------------------
+#pragma region simvars
 
-
-
-/*
-    Variables during simulation
-*/
-
-//Iterations
+// Iterations
 t_simfloat it = 0;
 
-//Current time
+// Current time
 t_simfloat t = 0;
 t_simfloat dt = 0;
 
-//Positional variables
+// Positional variables
 t_simfloat acc = 0;
 t_simfloat speed = 0;
 t_simfloat dist = 0;
 t_simfloat ddist = 0;
 
-//Vector positional variables
+// Vector positional variables
 std::vector<t_simfloat> acc_v = {0,0};
 std::vector<t_simfloat> vel_v = {0,0};
 std::vector<t_simfloat> loc_v = {0,0};
 
-//Electrical variables
+// Electrical variables
 t_simfloat R = 0;
 t_simfloat U = 0;
 t_simfloat I = 0;
 t_simfloat E_tot = 0;
 t_simfloat E_use = 0;
 
-//Forces
+// Forces
 t_simfloat F_d = 0;
 t_simfloat F_l = 0;
 t_simfloat F_f_pl_u = 0;
@@ -99,10 +98,10 @@ t_simfloat F_f_r = 0;
 t_simfloat F_f_tot = 0;
 t_simfloat F = 0;
 
-//Coefficients
+// Coefficients
 t_simfloat mu_curr;
 
-//Thermals
+// Thermals
 t_simfloat Q_pl_u = 0;
 t_simfloat Q_pl_d = 0;
 t_simfloat Q_r = 0;
@@ -115,24 +114,24 @@ t_simfloat T_pl_d = RoomTemp;
 t_simfloat dV_a = 0;
 t_simfloat P = 0;
 
-//Debug
+// Debug
 t_simfloat F_l0;
 t_simfloat speed0;
 t_simfloat speedmax = 0;
 
+#pragma endregion simvars
+// -----------------------------
+// Formulas
+// -----------------------------
+#pragma region formulas
 
-
-/*
-    Formulas
-*/
-
-//Drag (Air Resistance)
-inline t_simfloat calc_F_d(t_simfloat AirDensity, t_simfloat c_w, t_simfloat A, t_simfloat ProjectileSpeed) {
+// Drag (Air Resistance)
+inline t_simfloat calc_F_d(t_simfloat c_w, t_simfloat A, t_simfloat ProjectileSpeed) {
     return ((t_simfloat)0.5) * AirDens * c_w * A * pow(ProjectileSpeed, 2);
 }
 
-//Current
-inline t_simfloat calc_I(t_simfloat CurrentZero, t_simfloat time, t_simfloat Resistance, t_simfloat Capacity) {
+// Current
+inline t_simfloat calc_I(t_simfloat CurrentZero, t_simfloat Resistance, t_simfloat Capacity) {
     return CurrentZero * exp(((t_simfloat)-1)* t / (Resistance*Capacity));
 }
 
@@ -141,7 +140,7 @@ inline t_simfloat calc_F_l(t_simfloat Current, t_simfloat InductionGradient) {
     return ((t_simfloat)0.5) * InductionGradient * pow(Current, 2);
 }
 
-//Friction forces
+// Friction forces
 inline t_simfloat calc_F_f_pl_d(t_simfloat mu, t_simfloat Pressure, t_simfloat Area, t_simfloat Gravity) {
     return mu * ((Pressure*Area) + Gravity);
 }
@@ -149,39 +148,44 @@ inline t_simfloat calc_F_f_other(t_simfloat mu, t_simfloat Pressure, t_simfloat 
     return mu * (Pressure*Area);
 }
 
-//Heat absorbed by object
+// Heat absorbed by object
 inline t_simfloat calc_Q_obj(t_simfloat ObjectFriction, t_simfloat deltaDistance) {
     return ((t_simfloat)0.5) * ObjectFriction * deltaDistance;
 }
 
-//New object temperature
+// New object temperature
 inline t_simfloat calc_dT_obj(t_simfloat Heat, t_simfloat SpecificHeat, t_simfloat mass) {
     return (Heat / (SpecificHeat * mass));
 }
 
-//Armature Volume Increase
+// Armature Volume Increase
 inline t_simfloat calc_dV(t_simfloat VolumeZero, t_simfloat VolumetricConstant, t_simfloat Temp) {
     return VolumeZero * VolumetricConstant * (Temp - RoomTemp);
 }
 
-//Armature Pressure
+// Armature Pressure
 inline t_simfloat calc_P(t_simfloat Heat, t_simfloat deltaVolume) {
     return Heat / deltaVolume;
 }
 
-//Resistance
+// Resistance
 inline t_simfloat calc_R_obj(t_simfloat Temp, t_simfloat length, t_simfloat Area) {
     return (((0.0077*Temp) - 0.7175) * pow(10, -8) * length) / Area;
 }
 
+#pragma endregion formulas
+// -----------------------------
+// The simulation
+// -----------------------------
 
 int main() {
 
-    /*
-        Calculations based on properties
-    */
+    // -----------------------------
+    // Calculations based on properties
+    // -----------------------------
+    #pragma region constcals
 
-   // Inductance gradient, this should only be computed once, and then cached. Can also be changed to a constant if known
+    // Inductance gradient, this should only be computed once, and then cached. Can also be changed to a constant if known
     t_simfloat numerator = pow(10, -6);
     t_simfloat denominator =
         (((t_simfloat)0.5986) * (h_r / w_a)) +
@@ -191,9 +195,10 @@ int main() {
                 w_r
         ))) -
         ((t_simfloat)0.7831);
-    t_simfloat IndGrad = t_simfloat(numerator / denominator);
+    t_simfloat IndGrad = numerator / denominator;
+    std::cout << "IndGrad: " << IndGrad << "\n";
 
-    //Armature
+    // Armature
     t_simfloat Afront_a = w_a * h_a;
     t_simfloat Aside_a = h_a * l_a;
     t_simfloat Atop_a = w_a * l_a;
@@ -203,43 +208,39 @@ int main() {
     t_simfloat R_a = (resistiv_a * l_a) / Aside_a;      //For R0, changes during simulating
     t_simfloat F_g = m_a * g;                           //Gravity doesn't change since mass doesn't change
 
-    //Rails
+    // Rails
     t_simfloat Afront_r = w_r * h_r;
     t_simfloat V_r = l_r * w_r * h_r;
     t_simfloat m_r = V_r * dens_r;
     t_simfloat R_r = (resistiv_a * l_a) / Afront_a;     //For R0. Starts with armature at front of rails
 
-    //Plates
+    // Plates
     t_simfloat V_pl = h_pl * l_r * (w_a + (2 * w_r));
     t_simfloat m_pl = V_pl * dens_pl;
 
-    //Power wires
+    // Power wires
     t_simfloat R_pw = (resistiv_pw * l_pw) / A_pw;
 
-    //Electrical
+    // Electrical
     t_simfloat R0 = R_a + R_pw + (2*R_r);       //Current flows through 2 rails
     t_simfloat I0 = U0 / R0;
     R = R0;
     U = U0;
     I = I0;
 
+    #pragma endregion constcals
+    // -----------------------------
+    // Simulation loop
+    // -----------------------------
 
-
-    /*
-        Loops
-    */
-
-    //Loop while armature is inside railgun
+    // Loop whilst armature is inside the railgun
+    dt = dt_in; // Set the right dt
     while (dist < l_r) {
-
-        //Use current dt
-        dt = dt_in;
-
         //Calculate drag
-        F_d = calc_F_d(AirDens, c_w_in, Afront_a, speed);
+        F_d = calc_F_d(c_w_in, Afront_a, speed);
 
         //Calculate Lorentzforce
-        I = calc_I(I0, t, R, C);
+        I = calc_I(I0, R, C);
         F_l = calc_F_l(I, IndGrad);
 
         //First check if static or moving for friction coefficient
@@ -265,6 +266,14 @@ int main() {
 
         //Calculate total force
         F = F_l - F_d - F_f_tot;
+        //std::cout << it << "\n";
+        std::cout << "speed: " << speed << "\n";
+        //std::cout << "dist: " << dist << "\n";
+        //std::cout << "P: " << P << "\n";
+        //std::cout << "F_l: " << F_l << "\n";
+        //std::cout << "F_d: " << F_d << "\n";
+        //std::cout << "F_f_tot: " << F_f_tot << "\n";
+        //std::cout << F << "\n";
 
         //Calculate movement
         acc = F / m_a;
@@ -291,7 +300,7 @@ int main() {
 
         //Calculate pressure of armature
         dV_a = calc_dV(V0_a, alpha_V, T_a);
-        P = calc_P(Q_a, dV_a);
+        P = 0; //calc_P(Q_a, dV_a); // TODO Pressure is way too high
 
         //Calculate new resistances
         R_r = calc_R_obj(T_r, (dist + l_a), Afront_r);
@@ -306,7 +315,7 @@ int main() {
             Debug
         */
 
-        if (it == 1) {
+        /*if (it == 1) {
             F_l0 = F_l;
             speed0 = speed;
             std::cout << "Rendement: " << E_use/E_tot << "\n";
@@ -337,16 +346,14 @@ int main() {
             std::cout << "Heat: " << Q_a << "\n";
             std::cout << "\n";
 
-        }
+        }*/
         //std::cout << it;
 
         if (speed > speedmax) {
             speedmax = speed;
         }
-
-
-
     }
+    return 0;
 
     t_simfloat E_cap = 0.5*C*pow(U0, 2);
     t_simfloat E_kin = 0.5*m_a*pow(speed, 2);
