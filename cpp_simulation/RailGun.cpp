@@ -15,12 +15,13 @@ using t_exportfloat = double;
 
 // General simulation settings
 constexpr t_simfloat dt_in = 1 * pow(10, -5);        // Timestep inside railgun
-constexpr t_simfloat dt_out = 0;                        // Timestep outside railgun
+constexpr t_simfloat dt_out = 1 * pow(10, -4);       // Timestep outside railgun
+constexpr t_simfloat height = 2;
 
 // Standard units
-constexpr t_simfloat AirDens = 1.293;   // kg/m3
+constexpr t_simfloat AirDens = 1.293;  // kg/m3
 constexpr t_simfloat g = 9.81;         // TODO g can be more precise than 9.81
-constexpr t_simfloat RoomTemp = 293;  // In Kelvin
+constexpr t_simfloat RoomTemp = 293;   // In Kelvin
 
 // Friction coefficients between armature, and rails and plates
 constexpr t_simfloat mu_s = 1.5;
@@ -60,6 +61,7 @@ constexpr t_simfloat resistiv_pw = 1.678 * pow(10, -8);
 constexpr bool ConstPower = false;
 constexpr t_simfloat C = 160000 * pow(10, -6);
 constexpr t_simfloat U0 = 400;
+constexpr t_simfloat ConstR = 0 * pow(10, -5);
 
 #pragma endregion constvars
 // -----------------------------
@@ -123,7 +125,8 @@ t_simfloat P = 0;
 // Debug
 t_simfloat F_l0;
 t_simfloat speed0;
-t_simfloat speedmax = 0;
+t_simfloat speedmax;
+t_simfloat ExitVelocity;
 
 #pragma endregion simvars
 // -----------------------------
@@ -242,7 +245,7 @@ int main() {
     t_simfloat R_pw = (resistiv_pw * l_pw) / A_pw;
 
     // Electrical
-    t_simfloat R0 = R_a + R_pw + (2*R_r);       //Current flows through 2 rails
+    t_simfloat R0 = R_a + R_pw + (2*R_r) + ConstR;       //Current flows through 2 rails
     t_simfloat I0 = U0 / R0;
     R = R0;
     U = U0;
@@ -339,10 +342,12 @@ int main() {
         R_r = calc_R_obj(T_r, (dist + l_a), Afront_r);
         R_a = calc_R_obj(T_a, w_a, Aside_a);
 
+        R = R_a + R_pw + (2*R_r) + ConstR;
+
         //Increment time
         t += dt;
         it += 1;
-        std::cout << it << " \n";
+        //std::cout << it << " \n";
 
         // Store datapoint
         Datapoint* datapoint = &datapoints[datapoint_idx];
@@ -415,33 +420,36 @@ int main() {
     t_simfloat AfvuurRendement = E_kin / E_cap;
     std::cout << "Totaal rendement: " << AfvuurRendement << "\n";
 
+    ExitVelocity = speed;
+
     //Convert to vectors
     vel_v[0] = speed;
     loc_v[0] = dist;
+    loc_v[1] = height;
 
     //Loop for armature outside railgun
     dt = dt_out;
-    while (speed >= 1 && loc_v[1] > -100) {
+    while (speed >= 1 && loc_v[1] > 0) {
 
         // Calculate drag in both directions
         F_d_v[0] = calc_F_d(c_w_out, Afront_a, vel_v[0]);
         F_d_v[1] = calc_F_d(c_w_out, Atop_a, vel_v[1]);
 
         // Calculate acceleration in both directions
-        acc_v[0] = F_d_v[0] / m_a;
-        acc_v[1] = (F_g - F_d_v[1]) / m_a;
-
-        // Calculate delta distance
-        ddist_v[0] = acc_v[0]*dt;
-        ddist_v[1] = acc_v[1]*dt;
+        acc_v[0] = -F_d_v[0] / m_a;
+        acc_v[1] = (-F_g + F_d_v[1]) / m_a;
 
         // Calculate new velocity
-        vel_v[0] += ddist_v[0];
-        vel_v[1] += ddist_v[1];
+        vel_v[0] += acc_v.at(0)*dt;
+        vel_v[1] += acc_v.at(1)*dt;
+
+        // Calculate delta distance
+        ddist_v[0] = vel_v[0]*dt;
+        ddist_v[1] = vel_v[1]*dt;
 
         // Calculate new location
-        loc_v[0] += vel_v[0]*dt;
-        loc_v[1] += vel_v[1]*dt;
+        loc_v[0] += ddist_v[0];
+        loc_v[1] += ddist_v[1];
 
         // New distance
         dist += sqrt(pow(ddist_v[0], 2) + pow(ddist_v[1], 2));
@@ -452,12 +460,18 @@ int main() {
         t += dt;
         it += 1;
 
+        /*
         std::cout << "Speed:  " << speed << "\n";
         std::cout << "acc: " << acc_v[0] << "\n";
         std::cout << "loc: " << loc_v[1] << "\n";
         std::cout << "locx: " << loc_v[0] << "\n";
+        std::cout << "velx: " << vel_v[0] << "\n";
+        std::cout << "vely: " << vel_v[1] << "\n";
+        std::cout << "accy: " << acc_v[1] << "\n";
+        */
 
         if (it > 10000) {
+            std::cout << "Infinite loop aborting \n";
             break;
         }
 
@@ -469,6 +483,7 @@ int main() {
     std::cout << "Iterations: " << it << "\n";
     std::cout << "Current: " << I << "\n";
     std::cout << "T_a: " << T_a << "\n";
+    std::cout << "m_a: " << m_a << "\n";
     std::cout << "acc: " << acc << "\n";
     std::cout << "F_l: " << F_l << "\n";
     std::cout << "F_l0: " << F_l0 << "\n";
@@ -478,7 +493,11 @@ int main() {
     std::cout << "F_d: " << F_d << "\n";
     std::cout << "F_f_tot: " << F_f_tot << "\n";
     std::cout << "speed: " << speed << "\n";
+    std::cout << "X Velocity: " << vel_v[0] << "\n";
+    std::cout << "Y Velocity: " << vel_v[1] << "\n";
+    std::cout << "y drag: " << F_d_v[1] << "\n";
     std::cout << "speed0: " << speed0 << "\n";
     std::cout << "SpeedMax: " << speedmax << "\n";
+    std::cout << "Exit Velocity: " << ExitVelocity << "\n"; 
     return 0;
 }
