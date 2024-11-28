@@ -7,7 +7,7 @@ class Datapoint:
     speed_x: float
     speed_y: float
     loc_x: float
-    loy_y: float
+    loc_y: float
     F_l: float
 
 FIELD_COUNT = 6

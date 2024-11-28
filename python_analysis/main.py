@@ -20,11 +20,13 @@ def show_plot(reader, x, y):
     plt.show()
 
 def main():
+    plt.rcParams['figure.dpi'] = 600
+
     reader = ExportReader("../cpp_simulation/buildDir/out.bin")
     show_plot(
         reader,
         lambda point: point.t,
-        lambda point: point.loc_x
+        lambda point: point.loc_y
     )
 
 if __name__ == "__main__":
