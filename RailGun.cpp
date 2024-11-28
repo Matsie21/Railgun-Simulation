@@ -342,13 +342,14 @@ int main() {
         //Increment time
         t += dt;
         it += 1;
+        std::cout << it << " \n";
 
         // Store datapoint
         Datapoint* datapoint = &datapoints[datapoint_idx];
         datapoint_idx++;
-        datapoint.t = t;
-        datapoint.speed = speed;
-        datapoint.dist = dist;
+        datapoint->t = t;
+        datapoint->speed = speed;
+        datapoint->dist = dist;
         if (datapoint_idx == DATAPOINTS_BUF_COUNT) {
             // Flush the buffer
             out_file.write(reinterpret_cast<char*>(datapoints), sizeof(Datapoint) * DATAPOINTS_BUF_COUNT);
