@@ -24,7 +24,7 @@ def main():
     show_plot(
         reader,
         lambda point: point.t,
-        lambda point: point.speed
+        lambda point: point.F_l
     )
 
 if __name__ == "__main__":

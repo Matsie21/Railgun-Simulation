@@ -1,7 +1,7 @@
 import struct
 from dataclasses import dataclass
 
-FIELD_COUNT = 3
+FIELD_COUNT = 4
 T_EXPORTFLOAT_SIZE = 8
 POINT_SIZE = FIELD_COUNT * T_EXPORTFLOAT_SIZE
 
@@ -16,13 +16,14 @@ class Datapoint:
     t: float
     speed: float
     dist: float
+    F_l: float
 
 FORMAT_STR = gen_fmt_string()
 def read_point(idx, buffer):
     offset = idx * POINT_SIZE
 
-    (t, speed, dist) = struct.unpack_from(FORMAT_STR, buffer, offset)
-    return Datapoint(t, speed, dist)
+    (t, speed, dist, F_l) = struct.unpack_from(FORMAT_STR, buffer, offset)
+    return Datapoint(t, speed, dist, F_l)
 
 BUFFER_COUNT = 2 << 20
 BUFFER_SIZE = BUFFER_COUNT * POINT_SIZE

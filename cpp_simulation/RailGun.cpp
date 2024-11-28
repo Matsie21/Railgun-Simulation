@@ -191,6 +191,7 @@ struct Datapoint {
     t_exportfloat t;
     t_exportfloat speed;
     t_exportfloat dist;
+    t_exportfloat F_l;
 };
 #pragma endregion internaldefs
 constexpr size_t DATAPOINTS_BUF_COUNT = 1 << 20;
@@ -253,9 +254,8 @@ int main() {
 
     #pragma endregion constcals
     // -----------------------------
-    // Simulation loop
+    // Initialize export buffer
     // -----------------------------
-
     auto* datapoints = static_cast<Datapoint*>(malloc(
         sizeof(Datapoint) * DATAPOINTS_BUF_COUNT
     ));
@@ -263,7 +263,9 @@ int main() {
     std::ofstream out_file;
     out_file.open("out.bin", std::ios::out | std::ios::trunc | std::ios::binary);
 
-    // Loop whilst armature is inside the railgun
+    // -----------------------------
+    // Simulation loop 1: Inside the railgun
+    // -----------------------------
     dt = dt_in; // Set the right dt
     while (dist < l_r) {
         //Calculate drag
@@ -355,6 +357,7 @@ int main() {
         datapoint->t = t;
         datapoint->speed = speed;
         datapoint->dist = dist;
+        datapoint->F_l = F_l;
         if (datapoint_idx == DATAPOINTS_BUF_COUNT) {
             // Flush the buffer
             out_file.write(reinterpret_cast<char*>(datapoints), sizeof(Datapoint) * DATAPOINTS_BUF_COUNT);
@@ -405,15 +408,6 @@ int main() {
         }
     }
 
-    if (datapoint_idx > 0) {
-        // Flush unflushed buffer
-        out_file.write(reinterpret_cast<char*>(datapoints), sizeof(Datapoint) * (datapoint_idx - 1));
-    }
-    out_file.close();
-    free(datapoints);
-
-    //return 0;
-
     t_simfloat E_cap = 0.5*C*pow(U0, 2);
     t_simfloat E_kin = 0.5*m_a*pow(speed, 2);
 
@@ -427,7 +421,9 @@ int main() {
     loc_v[0] = dist;
     loc_v[1] = height;
 
-    //Loop for armature outside railgun
+    // -----------------------------
+    // Simulation loop 2: Outside the railgun
+    // -----------------------------
     dt = dt_out;
     while (speed >= 1 && loc_v[1] > 0) {
 
@@ -474,10 +470,20 @@ int main() {
             std::cout << "Infinite loop aborting \n";
             break;
         }
-
     }
 
+    // -----------------------------
+    // Finalize and cleanup
+    // -----------------------------
+    // Flush and free the export buffer
+    if (datapoint_idx > 0) {
+        // Flush unflushed buffer
+        out_file.write(reinterpret_cast<char*>(datapoints), sizeof(Datapoint) * (datapoint_idx - 1));
+    }
+    out_file.close();
+    free(datapoints);
 
+    // Print stats
     std::cout << "Done! \n";
     std::cout << "Time: " << t << "\n";
     std::cout << "Iterations: " << it << "\n";
@@ -498,6 +504,6 @@ int main() {
     std::cout << "y drag: " << F_d_v[1] << "\n";
     std::cout << "speed0: " << speed0 << "\n";
     std::cout << "SpeedMax: " << speedmax << "\n";
-    std::cout << "Exit Velocity: " << ExitVelocity << "\n"; 
+    std::cout << "Exit Velocity: " << ExitVelocity << "\n";
     return 0;
 }
