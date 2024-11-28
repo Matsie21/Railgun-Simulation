@@ -339,7 +339,12 @@ int main() {
         R_r = calc_R_obj(T_r, (dist + l_a), Afront_r);
         R_a = calc_R_obj(T_a, w_a, Aside_a);
 
-        auto datapoint = datapoints[datapoint_idx];
+        //Increment time
+        t += dt;
+        it += 1;
+
+        // Store datapoint
+        Datapoint* datapoint = &datapoints[datapoint_idx];
         datapoint_idx++;
         datapoint.t = t;
         datapoint.speed = speed;
@@ -349,10 +354,6 @@ int main() {
             out_file.write(reinterpret_cast<char*>(datapoints), sizeof(Datapoint) * DATAPOINTS_BUF_COUNT);
             datapoint_idx = 0;
         }
-
-        //Increment time
-        t += dt;
-        it += 1;
 
 
         /*
