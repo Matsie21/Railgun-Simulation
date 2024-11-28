@@ -336,11 +336,11 @@ int main() {
         R_r = calc_R_obj(T_r, (dist + l_a), Afront_r);
         R_a = calc_R_obj(T_a, w_a, Aside_a);
 
-        auto datapoint = datapoints[datapoint_idx];
+        Datapoint* datapoint = &datapoints[datapoint_idx];
         datapoint_idx++;
-        datapoint.t = t;
-        datapoint.speed = speed;
-        datapoint.dist = dist;
+        datapoint->t = t;
+        datapoint->speed = speed;
+        datapoint->dist = dist;
         if (datapoint_idx == DATAPOINTS_BUF_COUNT) {
             // Flush the buffer
             out_file.write(reinterpret_cast<char*>(datapoints), sizeof(Datapoint) * DATAPOINTS_BUF_COUNT);
