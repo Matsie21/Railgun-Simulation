@@ -16,7 +16,7 @@ using t_exportfloat = double;
 // General simulation settings
 constexpr t_simfloat dt_in = 1 * pow(10, -5);        // Timestep inside railgun
 constexpr t_simfloat dt_out = 1 * pow(10, -4);       // Timestep outside railgun
-constexpr t_simfloat height = 2;
+constexpr t_simfloat height = 20000;
 
 // Standard units
 constexpr t_simfloat AirDens = 1.293;  // kg/m3
@@ -141,7 +141,7 @@ inline t_simfloat calc_F_d(t_simfloat c_w, t_simfloat A, t_simfloat ProjectileSp
 
 // Current
 inline t_simfloat calc_I(t_simfloat CurrentZero, t_simfloat Resistance, t_simfloat Capacity) {
-    return CurrentZero * exp(((t_simfloat)-1)* t / (Resistance*Capacity));
+    return CurrentZero * expl(-1 * t / (Resistance*Capacity));
 }
 
 // Lorentz force
@@ -189,8 +189,10 @@ inline t_simfloat calc_R_obj(t_simfloat Temp, t_simfloat length, t_simfloat Area
 #pragma region internaldefs
 struct Datapoint {
     t_exportfloat t;
-    t_exportfloat speed;
-    t_exportfloat dist;
+    t_exportfloat speed_x;
+    t_exportfloat speed_y;
+    t_exportfloat loc_x;
+    t_exportfloat loc_y;
     t_exportfloat F_l;
 };
 #pragma endregion internaldefs
@@ -212,13 +214,13 @@ int main() {
     // Inductance gradient, this should only be computed once, and then cached. Can also be changed to a constant if known
     t_simfloat numerator = pow(10, -6);
     t_simfloat denominator =
-        (((t_simfloat)0.5986) * (h_r / w_a)) +
-        (((t_simfloat)0.9683) * (h_r / (w_a + ((t_simfloat)2) * w_r))) +
-        (((t_simfloat)4.3157) * (((t_simfloat)1) / log(
-                (((t_simfloat)4) * (w_a + w_r)) /
-                w_r
+        (static_cast<t_simfloat>(0.5986) * (h_r / w_a)) +
+        (static_cast<t_simfloat>(0.9683) * (h_r / (w_a + ((t_simfloat)2) * w_r))) +
+        (static_cast<t_simfloat>(4.3157) * (static_cast<t_simfloat>(1) / log(
+            (static_cast<t_simfloat>(4) * (w_a + w_r)) /
+            w_r
         ))) -
-        ((t_simfloat)0.7831);
+        static_cast<t_simfloat>(0.7831);
     t_simfloat IndGrad = numerator / denominator;
     std::cout << "IndGrad: " << IndGrad << "\n";
 
@@ -282,34 +284,14 @@ int main() {
             mu_curr = mu_k;
         }
 
-        //Check if friction forces apply
-        if (speed < 0) {
-            std::cout << "Speed negative aborting. Iteration: ";
-            std::cout << it << "\n";
-            std::cout << "Speed: " << speed << "\n";
-            std::cout << "Q_a: " << Q_a << "\n";
-            std::cout << "T_a: " << T_a << "\n";
-            std::cout << "P: " << P << "\n";
-            free(datapoints);
-            return 1;
-        } else {
-            //Calculate friction forces
-            F_f_pl_d = calc_F_f_pl_d(mu_curr, P, Atop_a, F_g);
-            F_f_pl_u = calc_F_f_other(mu_curr, P, Atop_a);
-            F_f_r = calc_F_f_other(mu_curr, P, Aside_a);
-            F_f_tot = F_f_pl_d + F_f_pl_u + (2*F_f_r);
-        }
+        //Calculate friction forces
+        F_f_pl_d = calc_F_f_pl_d(mu_curr, P, Atop_a, F_g);
+        F_f_pl_u = calc_F_f_other(mu_curr, P, Atop_a);
+        F_f_r = calc_F_f_other(mu_curr, P, Aside_a);
+        F_f_tot = F_f_pl_d + F_f_pl_u + (2*F_f_r);
 
         //Calculate total force
         F = F_l - F_d - F_f_tot;
-        //std::cout << it << "\n";
-        //std::cout << "speed: " << speed << "\n";
-        //std::cout << "dist: " << dist << "\n";
-        //std::cout << "P: " << P << "\n";
-        //std::cout << "F_l: " << F_l << "\n";
-        //std::cout << "F_d: " << F_d << "\n";
-        //std::cout << "F_f_tot: " << F_f_tot << "\n";
-        //std::cout << F << "\n";
 
         //Calculate movement
         acc = F / m_a;
@@ -349,14 +331,15 @@ int main() {
         //Increment time
         t += dt;
         it += 1;
-        //std::cout << it << " \n";
 
         // Store datapoint
         Datapoint* datapoint = &datapoints[datapoint_idx];
         datapoint_idx++;
         datapoint->t = t;
-        datapoint->speed = speed;
-        datapoint->dist = dist;
+        datapoint->speed_x = speed;
+        datapoint->speed_y = 0;
+        datapoint->loc_x = dist;
+        datapoint->loc_y = 0;
         datapoint->F_l = F_l;
         if (datapoint_idx == DATAPOINTS_BUF_COUNT) {
             // Flush the buffer
@@ -364,52 +347,13 @@ int main() {
             datapoint_idx = 0;
         }
 
-
-        /*
-            Debug
-        */
-
-        /*if (it == 1) {
-            F_l0 = F_l;
-            speed0 = speed;
-            std::cout << "Rendement: " << E_use/E_tot << "\n";
-            std::cout << "F_f0: " << F_f_tot << "\n";
-        }
-        if (it == 2) {
-
-            std::cout << "Almost last itertation \n";
-            std::cout << "Time: " << t << "\n";
-            std::cout << "Iterations: " << it << "\n";
-            std::cout << "Current: " << I << "\n";
-            std::cout << "T_a: " << T_a << "\n";
-            std::cout << "acc: " << acc << "\n";
-            std::cout << "F_l: " << F_l << "\n";
-            std::cout << "F_l0: " << F_l0 << "\n";
-            std::cout << "R, U, I" << R0 << " " << U0 << " " << I0 << " " << "\n";
-            std::cout << "Dist: " << dist << "\n";
-            std::cout << "F: " << F << "\n";
-            std::cout << "F_d: " << F_d << "\n";
-            std::cout << "F_f_tot: " << F_f_tot << "\n";
-            std::cout << "speed: " << speed << "\n";
-            std::cout << "speed0: " << speed0 << "\n";
-            std::cout << "F_f_r: " << F_f_r << "\n";
-            std::cout << "F_f_pl_u: " << F_f_pl_u << "\n";
-            std::cout << "F_f_pl_d: " << F_f_pl_d << "\n";
-            std::cout << "Pressure: " << P << "\n";
-            std::cout << "dV: " << dV_a << "\n";
-            std::cout << "Heat: " << Q_a << "\n";
-            std::cout << "\n";
-
-        }*/
-        //std::cout << it;
-
         if (speed > speedmax) {
             speedmax = speed;
         }
     }
 
-    t_simfloat E_cap = 0.5*C*pow(U0, 2);
-    t_simfloat E_kin = 0.5*m_a*pow(speed, 2);
+    t_simfloat E_cap = 0.5*C*powl(U0, 2);
+    t_simfloat E_kin = 0.5*m_a*powl(speed, 2);
 
     t_simfloat AfvuurRendement = E_kin / E_cap;
     std::cout << "Totaal rendement: " << AfvuurRendement << "\n";
@@ -426,7 +370,6 @@ int main() {
     // -----------------------------
     dt = dt_out;
     while (speed >= 1 && loc_v[1] > 0) {
-
         // Calculate drag in both directions
         F_d_v[0] = calc_F_d(c_w_out, Afront_a, vel_v[0]);
         F_d_v[1] = calc_F_d(c_w_out, Atop_a, vel_v[1]);
@@ -448,27 +391,27 @@ int main() {
         loc_v[1] += ddist_v[1];
 
         // New distance
-        dist += sqrt(pow(ddist_v[0], 2) + pow(ddist_v[1], 2));
+        dist += sqrtl(powl(ddist_v[0], 2L) + powl(ddist_v[1], 2));
 
         // Speed
-        speed = sqrt(pow(vel_v[0], 2) + pow(vel_v[1], 2));
+        speed = sqrtl(powl(vel_v[0], 2) + powl(vel_v[1], 2));
 
         t += dt;
         it += 1;
 
-        /*
-        std::cout << "Speed:  " << speed << "\n";
-        std::cout << "acc: " << acc_v[0] << "\n";
-        std::cout << "loc: " << loc_v[1] << "\n";
-        std::cout << "locx: " << loc_v[0] << "\n";
-        std::cout << "velx: " << vel_v[0] << "\n";
-        std::cout << "vely: " << vel_v[1] << "\n";
-        std::cout << "accy: " << acc_v[1] << "\n";
-        */
-
-        if (it > 10000) {
-            std::cout << "Infinite loop aborting \n";
-            break;
+        // Store datapoint
+        Datapoint* datapoint = &datapoints[datapoint_idx];
+        datapoint_idx++;
+        datapoint->t = t;
+        datapoint->speed_x = vel_v[0];
+        datapoint->speed_y = vel_v[1];
+        datapoint->loc_x = loc_v[0];
+        datapoint->loc_y = loc_v[1];
+        datapoint->F_l = 0;
+        if (datapoint_idx == DATAPOINTS_BUF_COUNT) {
+            // Flush the buffer
+            out_file.write(reinterpret_cast<char*>(datapoints), sizeof(Datapoint) * DATAPOINTS_BUF_COUNT);
+            datapoint_idx = 0;
         }
     }
 

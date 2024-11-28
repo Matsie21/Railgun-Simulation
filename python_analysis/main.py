@@ -24,7 +24,7 @@ def main():
     show_plot(
         reader,
         lambda point: point.t,
-        lambda point: point.F_l
+        lambda point: point.loc_x
     )
 
 if __name__ == "__main__":
