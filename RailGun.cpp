@@ -14,51 +14,51 @@ using t_exportfloat = double;
 #pragma region constvars
 
 // General simulation settings
-const t_simfloat dt_in = 1 * pow(10, -5);        // Timestep inside railgun
-const t_simfloat dt_out = 0;                        // Timestep outside railgun
+constexpr t_simfloat dt_in = 1 * pow(10, -5);        // Timestep inside railgun
+constexpr t_simfloat dt_out = 0;                        // Timestep outside railgun
 
 // Standard units
-const t_simfloat AirDens = 1.293;   // kg/m3
-const t_simfloat g = 9.81;         // TODO g can be more precise than 9.81
-const t_simfloat RoomTemp = 293;  // In Kelvin
+constexpr t_simfloat AirDens = 1.293;   // kg/m3
+constexpr t_simfloat g = 9.81;         // TODO g can be more precise than 9.81
+constexpr t_simfloat RoomTemp = 293;  // In Kelvin
 
 // Friction coefficients between armature, and rails and plates
-const t_simfloat mu_s = 1.5;
-const t_simfloat mu_k = 1.1;
+constexpr t_simfloat mu_s = 1.5;
+constexpr t_simfloat mu_k = 1.1;
 
 // Properties of individual rails
-const t_simfloat l_r = 2;
-const t_simfloat w_r = 0.05;
-const t_simfloat h_r = 0.05;
-const t_simfloat dens_r = 8.933 * pow(10, 3);
-const t_simfloat resistiv_r = 1.678 * pow(10, -8);
-const t_simfloat SpecHeat_r = 384;
+constexpr t_simfloat l_r = 2;
+constexpr t_simfloat w_r = 0.05;
+constexpr t_simfloat h_r = 0.05;
+constexpr t_simfloat dens_r = 8.933 * pow(10, 3);
+constexpr t_simfloat resistiv_r = 1.678 * pow(10, -8);
+constexpr t_simfloat SpecHeat_r = 384;
 
 // Properties of armature
-const t_simfloat l_a = 0.08;
-const t_simfloat w_a = 0.05;
-const t_simfloat h_a = 0.05;
-const t_simfloat dens_a = 8.933 * pow(10, 3);
-const t_simfloat resistiv_a = 1.678 * pow(10, -8);
-const t_simfloat SpecHeat_a = 384;
-const t_simfloat alpha_V = 49.5 * pow(10, -6);
-const t_simfloat c_w_in = 1.05;    //c_w changes because the air can't go around as easily inside the railgun
-const t_simfloat c_w_out = 1.05;
+constexpr t_simfloat l_a = 0.08;
+constexpr t_simfloat w_a = 0.05;
+constexpr t_simfloat h_a = 0.05;
+constexpr t_simfloat dens_a = 8.933 * pow(10, 3);
+constexpr t_simfloat resistiv_a = 1.678 * pow(10, -8);
+constexpr t_simfloat SpecHeat_a = 384;
+constexpr t_simfloat alpha_V = 49.5 * pow(10, -6);
+constexpr t_simfloat c_w_in = 1.05;    //c_w changes because the air can't go around as easily inside the railgun
+constexpr t_simfloat c_w_out = 1.05;
 
 // Properties of plates
-const t_simfloat h_pl = 0.03;
-const t_simfloat dens_pl = 8.933 * pow(10, 3);
-const t_simfloat SpecHeat_pl =384;
+constexpr t_simfloat h_pl = 0.03;
+constexpr t_simfloat dens_pl = 8.933 * pow(10, 3);
+constexpr t_simfloat SpecHeat_pl =384;
 
 // Properties of power wires
-const t_simfloat l_pw = 1;
-const t_simfloat A_pw = 0.000314159265359;
-const t_simfloat resistiv_pw = 1.678 * pow(10, -8);
+constexpr t_simfloat l_pw = 1;
+constexpr t_simfloat A_pw = 0.000314159265359;
+constexpr t_simfloat resistiv_pw = 1.678 * pow(10, -8);
 
 // Properties of powersupply
-const bool ConstPower = false;
-const t_simfloat C = 160000 * pow(10, -6);
-const t_simfloat U0 = 400;
+constexpr bool ConstPower = false;
+constexpr t_simfloat C = 160000 * pow(10, -6);
+constexpr t_simfloat U0 = 400;
 
 #pragma endregion constvars
 // -----------------------------
@@ -130,7 +130,7 @@ t_simfloat speedmax = 0;
 
 // Drag (Air Resistance)
 inline t_simfloat calc_F_d(t_simfloat c_w, t_simfloat A, t_simfloat ProjectileSpeed) {
-    return ((t_simfloat)0.5) * AirDens * c_w * A * pow(ProjectileSpeed, 2);
+    return 0.5 * AirDens * c_w * A * (ProjectileSpeed * ProjectileSpeed);
 }
 
 // Current
@@ -140,7 +140,7 @@ inline t_simfloat calc_I(t_simfloat CurrentZero, t_simfloat Resistance, t_simflo
 
 // Lorentz force
 inline t_simfloat calc_F_l(t_simfloat Current, t_simfloat InductionGradient) {
-    return ((t_simfloat)0.5) * InductionGradient * pow(Current, 2);
+    return 0.5 * InductionGradient * (Current * Current);
 }
 
 // Friction forces
@@ -153,7 +153,7 @@ inline t_simfloat calc_F_f_other(t_simfloat mu, t_simfloat Pressure, t_simfloat 
 
 // Heat absorbed by object
 inline t_simfloat calc_Q_obj(t_simfloat ObjectFriction, t_simfloat deltaDistance) {
-    return ((t_simfloat)0.5) * ObjectFriction * deltaDistance;
+    return 0.5 * ObjectFriction * deltaDistance;
 }
 
 // New object temperature
@@ -282,6 +282,7 @@ int main() {
             std::cout << "Q_a: " << Q_a << "\n";
             std::cout << "T_a: " << T_a << "\n";
             std::cout << "P: " << P << "\n";
+            free(datapoints);
             return 1;
         } else {
             //Calculate friction forces
@@ -309,7 +310,7 @@ int main() {
         dist += ddist;
 
         //Calculate released heat
-        E_tot = pow(I, 2) * R * dt;
+        E_tot = (I * I) * R * dt;
         E_use = F_l * ddist;
         Qtot += (E_tot - E_use);
 
