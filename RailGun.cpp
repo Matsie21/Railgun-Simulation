@@ -421,7 +421,7 @@ int main() {
 
     //Loop for armature outside railgun
     dt = dt_out;
-    while (speed >= 1) {
+    while (speed >= 1 && loc_v[1] > -100) {
 
         // Calculate drag in both directions
         F_d_v[0] = calc_F_d(c_w_out, Afront_a, vel_v[0]);
@@ -448,6 +448,18 @@ int main() {
 
         // Speed
         speed = sqrt(pow(vel_v[0], 2) + pow(vel_v[1], 2));
+
+        t += dt;
+        it += 1;
+
+        std::cout << "Speed:  " << speed << "\n";
+        std::cout << "acc: " << acc_v[0] << "\n";
+        std::cout << "loc: " << loc_v[1] << "\n";
+        std::cout << "locx: " << loc_v[0] << "\n";
+
+        if (it > 10000) {
+            break;
+        }
 
     }
 
