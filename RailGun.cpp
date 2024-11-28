@@ -2,9 +2,11 @@
 #include <cmath>
 #include <conio.h>
 #include <vector>
+#include <fstream>
 
 // Quickly change the datatype used by the simulation
 using t_simfloat = long double;
+using t_exportfloat = double;
 
 // -----------------------------
 // Changeable variables
@@ -175,10 +177,24 @@ inline t_simfloat calc_R_obj(t_simfloat Temp, t_simfloat length, t_simfloat Area
 
 #pragma endregion formulas
 // -----------------------------
+// Internal defs
+// -----------------------------
+#pragma region internaldefs
+struct Datapoint {
+    t_exportfloat t;
+    t_exportfloat speed;
+    t_exportfloat dist;
+};
+#pragma endregion internaldefs
+constexpr size_t DATAPOINTS_BUF_COUNT = 1 << 20;
+// -----------------------------
 // The simulation
 // -----------------------------
 
 int main() {
+    std::cout << "Is IEEE float? " << std::numeric_limits<t_exportfloat>::is_iec559 << "\n";
+    std::cout << "Float size: " << sizeof(t_exportfloat) << "\n";
+    std::cout << "Buffer size: " << (sizeof(Datapoint) * DATAPOINTS_BUF_COUNT) / 1024 / 1024 << " MiB\n";
 
     // -----------------------------
     // Calculations based on properties
@@ -233,6 +249,13 @@ int main() {
     // Simulation loop
     // -----------------------------
 
+    auto* datapoints = static_cast<Datapoint*>(malloc(
+        sizeof(Datapoint) * DATAPOINTS_BUF_COUNT
+    ));
+    int datapoint_idx = 0;
+    std::ofstream out_file;
+    out_file.open("out.bin", std::ios::out | std::ios::trunc | std::ios::binary);
+
     // Loop whilst armature is inside the railgun
     dt = dt_in; // Set the right dt
     while (dist < l_r) {
@@ -267,7 +290,7 @@ int main() {
         //Calculate total force
         F = F_l - F_d - F_f_tot;
         //std::cout << it << "\n";
-        std::cout << "speed: " << speed << "\n";
+        //std::cout << "speed: " << speed << "\n";
         //std::cout << "dist: " << dist << "\n";
         //std::cout << "P: " << P << "\n";
         //std::cout << "F_l: " << F_l << "\n";
@@ -305,6 +328,17 @@ int main() {
         //Calculate new resistances
         R_r = calc_R_obj(T_r, (dist + l_a), Afront_r);
         R_a = calc_R_obj(T_a, w_a, Aside_a);
+
+        auto datapoint = datapoints[datapoint_idx];
+        datapoint_idx++;
+        datapoint.t = t;
+        datapoint.speed = speed;
+        datapoint.dist = dist;
+        if (datapoint_idx == DATAPOINTS_BUF_COUNT) {
+            // Flush the buffer
+            out_file.write(reinterpret_cast<char*>(datapoints), sizeof(Datapoint) * DATAPOINTS_BUF_COUNT);
+            datapoint_idx = 0;
+        }
 
         //Increment time
         t += dt;
@@ -353,6 +387,14 @@ int main() {
             speedmax = speed;
         }
     }
+
+    if (datapoint_idx > 0) {
+        // Flush unflushed buffer
+        out_file.write(reinterpret_cast<char*>(datapoints), sizeof(Datapoint) * (datapoint_idx - 1));
+    }
+    out_file.close();
+    free(datapoints);
+
     return 0;
 
     t_simfloat E_cap = 0.5*C*pow(U0, 2);
