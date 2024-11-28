@@ -41,6 +41,7 @@ constexpr t_simfloat h_a = 0.05;
 constexpr t_simfloat dens_a = 8.933 * pow(10, 3);
 constexpr t_simfloat resistiv_a = 1.678 * pow(10, -8);
 constexpr t_simfloat SpecHeat_a = 384;
+constexpr t_simfloat k_T = 140 * pow(10,9);
 constexpr t_simfloat alpha_V = 49.5 * pow(10, -6);
 constexpr t_simfloat c_w_in = 1.05;    //c_w changes because the air can't go around as easily inside the railgun
 constexpr t_simfloat c_w_out = 1.05;
@@ -83,6 +84,8 @@ t_simfloat ddist = 0;
 std::vector<t_simfloat> acc_v = {0,0};
 std::vector<t_simfloat> vel_v = {0,0};
 std::vector<t_simfloat> loc_v = {0,0};
+std::vector<t_simfloat> F_d_v = {0,0};
+std::vector<t_simfloat> ddist_v = {0,0};
 
 // Electrical variables
 t_simfloat R = 0;
@@ -336,11 +339,11 @@ int main() {
         R_r = calc_R_obj(T_r, (dist + l_a), Afront_r);
         R_a = calc_R_obj(T_a, w_a, Aside_a);
 
-        Datapoint* datapoint = &datapoints[datapoint_idx];
+        auto datapoint = datapoints[datapoint_idx];
         datapoint_idx++;
-        datapoint->t = t;
-        datapoint->speed = speed;
-        datapoint->dist = dist;
+        datapoint.t = t;
+        datapoint.speed = speed;
+        datapoint.dist = dist;
         if (datapoint_idx == DATAPOINTS_BUF_COUNT) {
             // Flush the buffer
             out_file.write(reinterpret_cast<char*>(datapoints), sizeof(Datapoint) * DATAPOINTS_BUF_COUNT);
@@ -402,7 +405,7 @@ int main() {
     out_file.close();
     free(datapoints);
 
-    return 0;
+    //return 0;
 
     t_simfloat E_cap = 0.5*C*pow(U0, 2);
     t_simfloat E_kin = 0.5*m_a*pow(speed, 2);
@@ -415,9 +418,31 @@ int main() {
     loc_v[0] = dist;
 
     //Loop for armature outside railgun
-    while (speed >= 0) {
+    dt = dt_out;
+    while (speed >= 1) {
 
-        break;
+        // Calculate drag in both directions
+        F_d_v[0] = calc_F_d(c_w_out, Afront_a, vel_v[0]);
+        F_d_v[1] = calc_F_d(c_w_out, Atop_a, vel_v[1]);
+
+        // Calculate acceleration in both directions
+        acc_v[0] = F_d_v[0] / m_a;
+        acc_v[1] = (F_g - F_d_v[1]) / m_a;
+
+        // Calculate delta distance
+        ddist_v[0] = acc_v[0]*dt;
+        ddist_v[1] = acc_v[1]*dt;
+
+        // Calculate new velocity
+        vel_v[0] += ddist_v[0];
+        vel_v[1] += ddist_v[1];
+
+        // Calculate new location
+        loc_v[0] += vel_v[0]*dt;
+        loc_v[1] += vel_v[1]*dt;
+
+        // New distance
+        dist += sqrt(pow(ddist_v[0], 2) + pow(ddist_v[1], 2));
 
     }
 
