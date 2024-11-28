@@ -444,6 +444,9 @@ int main() {
         // New distance
         dist += sqrt(pow(ddist_v[0], 2) + pow(ddist_v[1], 2));
 
+        // Speed
+        speed = sqrt(pow(vel_v[0], 2) + pow(vel_v[1], 2));
+
     }
 
 
