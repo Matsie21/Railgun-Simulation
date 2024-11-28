@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "railgunsimulation"
+version = "0.1.0"
+description = ""
+authors = ["Tijn, Mats"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+matplotlib = "^3.9.2"
+numpy = "^2.1.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
