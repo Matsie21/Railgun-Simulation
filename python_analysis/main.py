@@ -20,7 +20,7 @@ def show_plot(reader, x, y):
     plt.show()
 
 def main():
-    reader = ExportReader("./out.bin")
+    reader = ExportReader("../cpp_simulation/buildDir/out.bin")
     show_plot(
         reader,
         lambda point: point.t,
