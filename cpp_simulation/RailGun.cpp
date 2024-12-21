@@ -6,6 +6,7 @@
 
 // Quickly change the datatype used by the simulation
 using t_simfloat = long double;
+// Use a slightly less precise float type for the exported data to save disk space
 using t_exportfloat = double;
 
 // -----------------------------
@@ -187,6 +188,7 @@ inline t_simfloat calc_R_obj(t_simfloat Temp, t_simfloat length, t_simfloat Area
 // Internal defs
 // -----------------------------
 #pragma region internaldefs
+// Define the struct of a single export data point, fields are written to the export buffer in the same order as how they are defined here
 struct Datapoint {
     t_exportfloat t;
     t_exportfloat speed_x;
@@ -196,12 +198,14 @@ struct Datapoint {
     t_exportfloat F_l;
 };
 #pragma endregion internaldefs
-constexpr size_t DATAPOINTS_BUF_COUNT = 1 << 20;
+// We keep a buffer with datapoints that we flush to the disk once it's full. This allows us to step more than once without a disk write, reducing IO overhead.
+constexpr size_t DATAPOINTS_BUF_COUNT = 1 << 20; // 2 to the power 20
 // -----------------------------
 // The simulation
 // -----------------------------
 
 int main() {
+    // Python requires IEEE floats, on most systems t_exportfloat should be IEEE. We log if it is just to make sure.
     std::cout << "Is IEEE float? " << std::numeric_limits<t_exportfloat>::is_iec559 << "\n";
     std::cout << "Float size: " << sizeof(t_exportfloat) << "\n";
     std::cout << "Buffer size: " << (sizeof(Datapoint) * DATAPOINTS_BUF_COUNT) / 1024 / 1024 << " MiB\n";
@@ -258,11 +262,13 @@ int main() {
     // -----------------------------
     // Initialize export buffer
     // -----------------------------
+    // Allocate our buffer, this will be flushed to disk every time it is full
     auto* datapoints = static_cast<Datapoint*>(malloc(
         sizeof(Datapoint) * DATAPOINTS_BUF_COUNT
     ));
     int datapoint_idx = 0;
     std::ofstream out_file;
+    // Open out.bin, which is where we will write our simulation results to
     out_file.open("out.bin", std::ios::out | std::ios::trunc | std::ios::binary);
 
     // -----------------------------
@@ -333,18 +339,20 @@ int main() {
         it += 1;
 
         // Store datapoint
-        Datapoint* datapoint = &datapoints[datapoint_idx];
-        datapoint_idx++;
+        Datapoint* datapoint = &datapoints[datapoint_idx]; // Get a reference to the first datapoint in the buffer that has not yet been written
+        datapoint_idx++; // Increment our buffer index, so that the next iteration of the loop doesn't overwrite this datapoint
+        // Fill in the datapoint fields with the values from the current step
         datapoint->t = t;
         datapoint->speed_x = speed;
         datapoint->speed_y = 0;
         datapoint->loc_x = dist;
         datapoint->loc_y = 0;
         datapoint->F_l = F_l;
+        // Flush the buffer to the disk if it is full
         if (datapoint_idx == DATAPOINTS_BUF_COUNT) {
             // Flush the buffer
             out_file.write(reinterpret_cast<char*>(datapoints), sizeof(Datapoint) * DATAPOINTS_BUF_COUNT);
-            datapoint_idx = 0;
+            datapoint_idx = 0; // Reset the buffer index back to the start
         }
 
         if (speed > speedmax) {
@@ -400,14 +408,16 @@ int main() {
         it += 1;
 
         // Store datapoint
-        Datapoint* datapoint = &datapoints[datapoint_idx];
-        datapoint_idx++;
+        Datapoint* datapoint = &datapoints[datapoint_idx]; // Get a reference to the first datapoint in the buffer that has not yet been written
+        datapoint_idx++; // Increment our buffer index, so that the next iteration of the loop doesn't overwrite this datapoint
+        // Fill in the datapoint fields with the values from the current step
         datapoint->t = t;
         datapoint->speed_x = vel_v[0];
         datapoint->speed_y = vel_v[1];
         datapoint->loc_x = loc_v[0];
         datapoint->loc_y = loc_v[1];
         datapoint->F_l = 0;
+        // Flush the buffer to the disk if it is full
         if (datapoint_idx == DATAPOINTS_BUF_COUNT) {
             // Flush the buffer
             out_file.write(reinterpret_cast<char*>(datapoints), sizeof(Datapoint) * DATAPOINTS_BUF_COUNT);
@@ -419,12 +429,13 @@ int main() {
     // Finalize and cleanup
     // -----------------------------
     // Flush and free the export buffer
-    if (datapoint_idx > 0) {
+    if (datapoint_idx > 0) { // If the buffer is not empty, make sure to write the bits of the buffer that have been filled to the disk.
         // Flush unflushed buffer
         out_file.write(reinterpret_cast<char*>(datapoints), sizeof(Datapoint) * (datapoint_idx - 1));
     }
+    // Close out.bin
     out_file.close();
-    free(datapoints);
+    free(datapoints); // De-allocate the buffer in memory, to prevent memory leaks.
 
     // Print stats
     std::cout << "Done! \n";
