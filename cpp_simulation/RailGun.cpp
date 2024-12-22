@@ -15,9 +15,9 @@ using t_exportfloat = double;
 #pragma region constvars
 
 // General simulation settings
-constexpr t_simfloat dt_in = 1 * pow(10, -5);        // Timestep inside railgun
+constexpr t_simfloat dt_in = 1 * pow(10, -7);        // Timestep inside railgun
 constexpr t_simfloat dt_out = 1 * pow(10, -4);       // Timestep outside railgun
-constexpr t_simfloat height = 20000;
+constexpr t_simfloat height = 1;
 
 // Standard units
 constexpr t_simfloat AirDens = 1.293;  // kg/m3
@@ -29,23 +29,23 @@ constexpr t_simfloat mu_s = 1.5;
 constexpr t_simfloat mu_k = 1.1;
 
 // Properties of individual rails
-constexpr t_simfloat l_r = 2;
-constexpr t_simfloat w_r = 0.05;
-constexpr t_simfloat h_r = 0.05;
+constexpr t_simfloat l_r = 1.610;
+constexpr t_simfloat w_r = 0.015;
+constexpr t_simfloat h_r = 0.015;
 constexpr t_simfloat dens_r = 8.933 * pow(10, 3);
 constexpr t_simfloat resistiv_r = 1.678 * pow(10, -8);
 constexpr t_simfloat SpecHeat_r = 384;
 
 // Properties of armature
-constexpr t_simfloat l_a = 0.08;
-constexpr t_simfloat w_a = 0.05;
-constexpr t_simfloat h_a = 0.05;
+constexpr t_simfloat l_a = 0.03;
+constexpr t_simfloat w_a = 0.0145;
+constexpr t_simfloat h_a = 0.0145;
 constexpr t_simfloat dens_a = 8.933 * pow(10, 3);
 constexpr t_simfloat resistiv_a = 1.678 * pow(10, -8);
 constexpr t_simfloat SpecHeat_a = 384;
-constexpr t_simfloat k_T = 140 * pow(10,9);
+constexpr t_simfloat k_T = 131 * pow(10,9);             //Bulk modulus
 constexpr t_simfloat alpha_V = 49.5 * pow(10, -6);
-constexpr t_simfloat c_w_in = 1.05;    //c_w changes because the air can't go around as easily inside the railgun
+constexpr t_simfloat c_w_in = 2;    //c_w changes because the air can't go around as easily inside the railgun
 constexpr t_simfloat c_w_out = 1.05;
 
 // Properties of plates
@@ -54,15 +54,15 @@ constexpr t_simfloat dens_pl = 8.933 * pow(10, 3);
 constexpr t_simfloat SpecHeat_pl =384;
 
 // Properties of power wires
-constexpr t_simfloat l_pw = 1;
+constexpr t_simfloat l_pw = 3;
 constexpr t_simfloat A_pw = 0.000314159265359;
 constexpr t_simfloat resistiv_pw = 1.678 * pow(10, -8);
 
 // Properties of powersupply
 constexpr bool ConstPower = false;
-constexpr t_simfloat C = 160000 * pow(10, -6);
-constexpr t_simfloat U0 = 400;
-constexpr t_simfloat ConstR = 0 * pow(10, -5);
+constexpr t_simfloat C = 17.5 * pow(10, 0);
+constexpr t_simfloat U0 = 4210;
+constexpr t_simfloat ConstR = 1 * pow(10, -1);
 
 #pragma endregion constvars
 // -----------------------------
@@ -123,7 +123,7 @@ t_simfloat T_pl_d = RoomTemp;
 t_simfloat dV_a = 0;
 t_simfloat P = 0;
 
-// Debug
+// Misc
 t_simfloat F_l0;
 t_simfloat speed0;
 t_simfloat speedmax;
@@ -174,13 +174,14 @@ inline t_simfloat calc_dV(t_simfloat VolumeZero, t_simfloat VolumetricConstant, 
 }
 
 // Armature Pressure
-inline t_simfloat calc_P(t_simfloat Heat, t_simfloat deltaVolume) {
-    return Heat / deltaVolume;
+inline t_simfloat calc_P_eqs(t_simfloat deltaV, t_simfloat Volume0) {
+    return k_T * (deltaV/Volume0);
 }
 
 // Resistance
 inline t_simfloat calc_R_obj(t_simfloat Temp, t_simfloat length, t_simfloat Area) {
-    return (((0.0077*Temp) - 0.7175) * pow(10, -8) * length) / Area;
+    return (((0.0077*Temp) - 0.7175)            // Formula for resistivity at higher temperatures 
+            * pow(10, -8) * length) / Area;    
 }
 
 #pragma endregion formulas
@@ -196,10 +197,17 @@ struct Datapoint {
     t_exportfloat loc_x;
     t_exportfloat loc_y;
     t_exportfloat F_l;
+    t_exportfloat I;
+    t_exportfloat T_a;
+    t_exportfloat R_a;
+    t_exportfloat P;
+    t_exportfloat R_r;
 };
 #pragma endregion internaldefs
+
 // We keep a buffer with datapoints that we flush to the disk once it's full. This allows us to step more than once without a disk write, reducing IO overhead.
 constexpr size_t DATAPOINTS_BUF_COUNT = 1 << 20; // 2 to the power 20
+
 // -----------------------------
 // The simulation
 // -----------------------------
@@ -234,7 +242,7 @@ int main() {
     t_simfloat Atop_a = w_a * l_a;
     t_simfloat V_a = l_a * w_a * h_a;
     t_simfloat V0_a = V_a;
-    t_simfloat m_a = V_a * dens_a;
+    t_simfloat m_a = 0.009; //V_a * dens_a;
     t_simfloat R_a = (resistiv_a * l_a) / Aside_a;      //For R0, changes during simulating
     t_simfloat F_g = m_a * g;                           //Gravity doesn't change since mass doesn't change
 
@@ -311,10 +319,10 @@ int main() {
         Qtot += (E_tot - E_use);
 
         //Calculate heat of objects
-        Q_pl_d = calc_Q_obj(F_f_pl_d, ddist);
-        Q_pl_u = calc_Q_obj(F_f_pl_u, ddist);
-        Q_r = calc_Q_obj(F_f_r, ddist);
-        Q_a = Q_pl_d + Q_pl_u + Q_r;
+        Q_pl_d = (m_pl / (m_a + (2*m_pl) + (2*m_r))) * (E_tot - E_use);
+        Q_pl_u = (m_pl / (m_a + (2*m_pl) + (2*m_r))) * (E_tot - E_use);
+        Q_r = (m_r / (m_a + (2*m_pl) + (2*m_r))) * (E_tot - E_use);
+        Q_a = (m_a / (m_a + (2*m_pl) + (2*m_r))) * (E_tot - E_use); 
         Q_a_tot += Q_a;
 
         //Calculate new temperatures
@@ -326,7 +334,7 @@ int main() {
         //Calculate pressure of armature
         dV_a = calc_dV(V0_a, alpha_V, T_a);
         V_a += dV_a;
-        P = calc_P(Q_a, V_a); // TODO Pressure is way too high
+        P = 0.00001 * calc_P_eqs(dV_a, V0_a);
 
         //Calculate new resistances
         R_r = calc_R_obj(T_r, (dist + l_a), Afront_r);
@@ -348,6 +356,11 @@ int main() {
         datapoint->loc_x = dist;
         datapoint->loc_y = 0;
         datapoint->F_l = F_l;
+        datapoint->I = I;
+        datapoint->T_a = T_a;
+        datapoint->R_a = R_a;
+        datapoint->P = P;
+        datapoint->R_r = R_r;
         // Flush the buffer to the disk if it is full
         if (datapoint_idx == DATAPOINTS_BUF_COUNT) {
             // Flush the buffer
@@ -360,12 +373,14 @@ int main() {
         }
     }
 
+    //Calculate efficiency
     t_simfloat E_cap = 0.5*C*powl(U0, 2);
     t_simfloat E_kin = 0.5*m_a*powl(speed, 2);
 
-    t_simfloat AfvuurRendement = E_kin / E_cap;
-    std::cout << "Totaal rendement: " << AfvuurRendement << "\n";
+    t_simfloat Efficiency = E_kin / E_cap;
+    std::cout << "Total Efficiency: " << Efficiency << "\n";
 
+    //Save exit velocity
     ExitVelocity = speed;
 
     //Convert to vectors
@@ -373,6 +388,7 @@ int main() {
     loc_v[0] = dist;
     loc_v[1] = height;
 
+/*
     // -----------------------------
     // Simulation loop 2: Outside the railgun
     // -----------------------------
@@ -417,6 +433,11 @@ int main() {
         datapoint->loc_x = loc_v[0];
         datapoint->loc_y = loc_v[1];
         datapoint->F_l = 0;
+        datapoint->I = I;
+        datapoint->T_a = T_a;
+        datapoint->R_a = R_a;
+        datapoint->P = P;
+        datapoint->R_r = R_r;
         // Flush the buffer to the disk if it is full
         if (datapoint_idx == DATAPOINTS_BUF_COUNT) {
             // Flush the buffer
@@ -424,7 +445,7 @@ int main() {
             datapoint_idx = 0;
         }
     }
-
+*/
     // -----------------------------
     // Finalize and cleanup
     // -----------------------------
@@ -443,6 +464,7 @@ int main() {
     std::cout << "Iterations: " << it << "\n";
     std::cout << "Current: " << I << "\n";
     std::cout << "T_a: " << T_a << "\n";
+    std::cout << "T_r: " << T_r << "\n";
     std::cout << "m_a: " << m_a << "\n";
     std::cout << "acc: " << acc << "\n";
     std::cout << "F_l: " << F_l << "\n";
@@ -459,5 +481,9 @@ int main() {
     std::cout << "speed0: " << speed0 << "\n";
     std::cout << "SpeedMax: " << speedmax << "\n";
     std::cout << "Exit Velocity: " << ExitVelocity << "\n";
+    std::cout << "Q_tot: " << Qtot << "\n";
+    std::cout << "m_tot: " << m_a + m_pl + (2*m_r) << "\n";
+    std::cout << "V0_a: " << V0_a << "\n";
+    std::cout << "V_a: " << V_a << "\n";
     return 0;
 }

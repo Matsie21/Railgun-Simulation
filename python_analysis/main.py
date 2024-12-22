@@ -25,15 +25,15 @@ def show_plot(reader, x, y):
 
 def main():
     # Increase the resolution of all graphs generated my matplotlib as the default resolution is too low
-    plt.rcParams['figure.dpi'] = 600
+    plt.rcParams['figure.dpi'] = 300
 
     # Create our exportreader and tell it that the export file is located at specified path
-    reader = ExportReader("../cpp_simulation/buildDir/out.bin")
+    reader = ExportReader(r"..")
     # Generate a plot with data from reader
     show_plot(
         reader,
         lambda point: point.t, # x-axis
-        lambda point: point.loc_y # y-axis
+        lambda point: point.R_r # y-axis
     )
 
 if __name__ == "__main__":
