@@ -60,9 +60,9 @@ constexpr t_simfloat resistiv_pw = 1.678 * pow(10, -8);
 
 // Properties of powersupply
 constexpr bool ConstPower = false;
-constexpr t_simfloat C = 17.5 * pow(10, 0);
+t_simfloat C = 0.00417510621132 * pow(10, 0);
 constexpr t_simfloat U0 = 4210;
-constexpr t_simfloat ConstR = 1 * pow(10, -1);
+constexpr t_simfloat ConstR = 0.8 * pow(10, -1);
 
 #pragma endregion constvars
 // -----------------------------
@@ -80,7 +80,7 @@ t_simfloat dt = 0;
 // Positional variables
 t_simfloat acc = 0;
 t_simfloat speed = 0;
-t_simfloat dist = 0;
+t_simfloat dist = 0.18;
 t_simfloat ddist = 0;
 
 // Vector positional variables
@@ -284,6 +284,7 @@ int main() {
     // -----------------------------
     dt = dt_in; // Set the right dt
     while (dist < l_r) {
+
         //Calculate drag
         F_d = calc_F_d(c_w_in, Afront_a, speed);
 
@@ -296,6 +297,10 @@ int main() {
             mu_curr = mu_s;
         } else {
             mu_curr = mu_k;
+        }
+
+        if (speed < 0) {
+            break;
         }
 
         //Calculate friction forces
@@ -334,7 +339,7 @@ int main() {
         //Calculate pressure of armature
         dV_a = calc_dV(V0_a, alpha_V, T_a);
         V_a += dV_a;
-        P = 0.00001 * calc_P_eqs(dV_a, V0_a);
+        P = 0.0000025 * calc_P_eqs(dV_a, V0_a);
 
         //Calculate new resistances
         R_r = calc_R_obj(T_r, (dist + l_a), Afront_r);

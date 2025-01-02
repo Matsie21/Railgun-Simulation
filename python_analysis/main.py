@@ -33,7 +33,7 @@ def main():
     show_plot(
         reader,
         lambda point: point.t, # x-axis
-        lambda point: point.R_r # y-axis
+        lambda point: point.I # y-axis
     )
 
 if __name__ == "__main__":
