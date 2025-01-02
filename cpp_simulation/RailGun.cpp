@@ -29,17 +29,17 @@ constexpr t_simfloat mu_s = 1.5;
 constexpr t_simfloat mu_k = 1.1;
 
 // Properties of individual rails
-constexpr t_simfloat l_r = 1.610;
-constexpr t_simfloat w_r = 0.015;
-constexpr t_simfloat h_r = 0.015;
+constexpr t_simfloat l_r = 6;
+constexpr t_simfloat w_r = 0.030;
+constexpr t_simfloat h_r = 0.030;
 constexpr t_simfloat dens_r = 8.933 * pow(10, 3);
 constexpr t_simfloat resistiv_r = 1.678 * pow(10, -8);
 constexpr t_simfloat SpecHeat_r = 384;
 
 // Properties of armature
 constexpr t_simfloat l_a = 0.03;
-constexpr t_simfloat w_a = 0.0145;
-constexpr t_simfloat h_a = 0.0145;
+constexpr t_simfloat w_a = 0.03;
+constexpr t_simfloat h_a = 0.03;
 constexpr t_simfloat dens_a = 8.933 * pow(10, 3);
 constexpr t_simfloat resistiv_a = 1.678 * pow(10, -8);
 constexpr t_simfloat SpecHeat_a = 384;
@@ -60,9 +60,9 @@ constexpr t_simfloat resistiv_pw = 1.678 * pow(10, -8);
 
 // Properties of powersupply
 constexpr bool ConstPower = false;
-t_simfloat C = 0.00417510621132 * pow(10, 0);
-constexpr t_simfloat U0 = 4210;
-constexpr t_simfloat ConstR = 0.8 * pow(10, -1);
+t_simfloat C = 0.0433333333333 * pow(10, 0);
+constexpr t_simfloat U0 = 6000;
+constexpr t_simfloat ConstR = 0.0046875 * pow(10, -0);
 
 #pragma endregion constvars
 // -----------------------------
@@ -242,7 +242,7 @@ int main() {
     t_simfloat Atop_a = w_a * l_a;
     t_simfloat V_a = l_a * w_a * h_a;
     t_simfloat V0_a = V_a;
-    t_simfloat m_a = 0.009; //V_a * dens_a;
+    t_simfloat m_a = 0.770; //V_a * dens_a;
     t_simfloat R_a = (resistiv_a * l_a) / Aside_a;      //For R0, changes during simulating
     t_simfloat F_g = m_a * g;                           //Gravity doesn't change since mass doesn't change
 
