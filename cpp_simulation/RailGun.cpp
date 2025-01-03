@@ -29,17 +29,17 @@ constexpr t_simfloat mu_s = 1.5;
 constexpr t_simfloat mu_k = 1.1;
 
 // Properties of individual rails
-constexpr t_simfloat l_r = 6;
-constexpr t_simfloat w_r = 0.030;
-constexpr t_simfloat h_r = 0.030;
+constexpr t_simfloat l_r = 1.610;
+constexpr t_simfloat w_r = 0.015;
+constexpr t_simfloat h_r = 0.015;
 constexpr t_simfloat dens_r = 8.933 * pow(10, 3);
 constexpr t_simfloat resistiv_r = 1.678 * pow(10, -8);
 constexpr t_simfloat SpecHeat_r = 384;
 
 // Properties of armature
 constexpr t_simfloat l_a = 0.03;
-constexpr t_simfloat w_a = 0.03;
-constexpr t_simfloat h_a = 0.03;
+constexpr t_simfloat w_a = 0.0145;
+constexpr t_simfloat h_a = 0.0145;
 constexpr t_simfloat dens_a = 8.933 * pow(10, 3);
 constexpr t_simfloat resistiv_a = 1.678 * pow(10, -8);
 constexpr t_simfloat SpecHeat_a = 384;
@@ -60,9 +60,10 @@ constexpr t_simfloat resistiv_pw = 1.678 * pow(10, -8);
 
 // Properties of powersupply
 constexpr bool ConstPower = false;
-t_simfloat C = 0.0433333333333 * pow(10, 0);
-constexpr t_simfloat U0 = 6000;
-constexpr t_simfloat ConstR = 0.0046875 * pow(10, -0);
+constexpr t_simfloat C = 0.004175 * pow(10, 0);
+constexpr t_simfloat U0 = 4210;
+constexpr t_simfloat ConstR0 = 0.0505 * pow(10, -0);
+constexpr t_simfloat ConstRho = 1.678 * pow(10, -8);
 
 #pragma endregion constvars
 // -----------------------------
@@ -96,6 +97,7 @@ t_simfloat U = 0;
 t_simfloat I = 0;
 t_simfloat E_tot = 0;
 t_simfloat E_use = 0;
+t_simfloat ConstR = ConstR0;
 
 // Forces
 t_simfloat F_d = 0;
@@ -120,6 +122,7 @@ t_simfloat T_a = RoomTemp;
 t_simfloat T_r = RoomTemp;
 t_simfloat T_pl_u = RoomTemp;
 t_simfloat T_pl_d = RoomTemp;
+t_simfloat T_pw = RoomTemp;
 t_simfloat dV_a = 0;
 t_simfloat P = 0;
 
@@ -128,6 +131,8 @@ t_simfloat F_l0;
 t_simfloat speed0;
 t_simfloat speedmax;
 t_simfloat ExitVelocity;
+t_simfloat CapEnergy;
+t_simfloat ExitI;
 
 #pragma endregion simvars
 // -----------------------------
@@ -142,7 +147,7 @@ inline t_simfloat calc_F_d(t_simfloat c_w, t_simfloat A, t_simfloat ProjectileSp
 
 // Current
 inline t_simfloat calc_I(t_simfloat CurrentZero, t_simfloat Resistance, t_simfloat Capacity) {
-    return CurrentZero * expl(-1 * t / (Resistance*Capacity));
+    return CurrentZero * expl((-1 * t) / (Resistance*Capacity));
 }
 
 // Lorentz force
@@ -184,6 +189,11 @@ inline t_simfloat calc_R_obj(t_simfloat Temp, t_simfloat length, t_simfloat Area
             * pow(10, -8) * length) / Area;    
 }
 
+// Const R Temp Dependency
+inline t_simfloat calc_R_const(t_simfloat Res0, t_simfloat Temp) {
+    return Res0 * ((((0.0077*Temp) - 0.7175) * pow(10, -8))/(ConstRho));
+}
+
 #pragma endregion formulas
 // -----------------------------
 // Internal defs
@@ -202,6 +212,8 @@ struct Datapoint {
     t_exportfloat R_a;
     t_exportfloat P;
     t_exportfloat R_r;
+    t_exportfloat R;
+    t_exportfloat ConstR;
 };
 #pragma endregion internaldefs
 
@@ -242,7 +254,7 @@ int main() {
     t_simfloat Atop_a = w_a * l_a;
     t_simfloat V_a = l_a * w_a * h_a;
     t_simfloat V0_a = V_a;
-    t_simfloat m_a = 0.770; //V_a * dens_a;
+    t_simfloat m_a = 0.009; //V_a * dens_a;
     t_simfloat R_a = (resistiv_a * l_a) / Aside_a;      //For R0, changes during simulating
     t_simfloat F_g = m_a * g;                           //Gravity doesn't change since mass doesn't change
 
@@ -278,6 +290,9 @@ int main() {
     std::ofstream out_file;
     // Open out.bin, which is where we will write our simulation results to
     out_file.open("out.bin", std::ios::out | std::ios::trunc | std::ios::binary);
+
+    // Debug
+    CapEnergy = 0.5 * C * pow(U0, 2);
 
     // -----------------------------
     // Simulation loop 1: Inside the railgun
@@ -339,11 +354,12 @@ int main() {
         //Calculate pressure of armature
         dV_a = calc_dV(V0_a, alpha_V, T_a);
         V_a += dV_a;
-        P = 0.0000025 * calc_P_eqs(dV_a, V0_a);
+        P = 0.0000 * calc_P_eqs(dV_a, V0_a);
 
         //Calculate new resistances
         R_r = calc_R_obj(T_r, (dist + l_a), Afront_r);
         R_a = calc_R_obj(T_a, w_a, Aside_a);
+        ConstR = calc_R_const(ConstR0, T_a);
 
         R = R_a + R_pw + (2*R_r) + ConstR;
 
@@ -366,6 +382,8 @@ int main() {
         datapoint->R_a = R_a;
         datapoint->P = P;
         datapoint->R_r = R_r;
+        datapoint->R = R;
+        datapoint->ConstR = ConstR;
         // Flush the buffer to the disk if it is full
         if (datapoint_idx == DATAPOINTS_BUF_COUNT) {
             // Flush the buffer
@@ -387,6 +405,7 @@ int main() {
 
     //Save exit velocity
     ExitVelocity = speed;
+    ExitI = I;
 
     //Convert to vectors
     vel_v[0] = speed;
@@ -475,6 +494,7 @@ int main() {
     std::cout << "F_l: " << F_l << "\n";
     std::cout << "F_l0: " << F_l0 << "\n";
     std::cout << "R, U, I" << R0 << " " << U0 << " " << I0 << " " << "\n";
+    std::cout << "CapEnergy: " << CapEnergy << "\n";
     std::cout << "Dist: " << dist << "\n";
     std::cout << "F: " << F << "\n";
     std::cout << "F_d: " << F_d << "\n";
@@ -490,5 +510,6 @@ int main() {
     std::cout << "m_tot: " << m_a + m_pl + (2*m_r) << "\n";
     std::cout << "V0_a: " << V0_a << "\n";
     std::cout << "V_a: " << V_a << "\n";
+    std::cout << "ExitI: " << ExitI << "\n";
     return 0;
 }
