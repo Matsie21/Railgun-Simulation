@@ -29,21 +29,21 @@ constexpr t_simfloat mu_s = 1.5;
 constexpr t_simfloat mu_k = 1.1;
 
 // Properties of individual rails
-constexpr t_simfloat l_r = 1.610;
-constexpr t_simfloat w_r = 0.015;
-constexpr t_simfloat h_r = 0.015;
+constexpr t_simfloat l_r = 2;
+constexpr t_simfloat w_r = 0.03;
+constexpr t_simfloat h_r = 0.03;
 constexpr t_simfloat dens_r = 8.933 * pow(10, 3);
 constexpr t_simfloat resistiv_r = 1.678 * pow(10, -8);
-constexpr t_simfloat SpecHeat_r = 384;
+constexpr t_simfloat SpecHeat_r = 383.9;
 
 // Properties of armature
-constexpr t_simfloat l_a = 0.03;
-constexpr t_simfloat w_a = 0.0145;
-constexpr t_simfloat h_a = 0.0145;
+constexpr t_simfloat l_a = 0.05;
+constexpr t_simfloat w_a = 0.03;
+constexpr t_simfloat h_a = 0.03;
 constexpr t_simfloat dens_a = 8.933 * pow(10, 3);
 constexpr t_simfloat resistiv_a = 1.678 * pow(10, -8);
 constexpr t_simfloat SpecHeat_a = 384;
-constexpr t_simfloat k_T = 131 * pow(10,9);             //Bulk modulus
+constexpr t_simfloat k_T = 140 * pow(10,9);             //Bulk modulus
 constexpr t_simfloat alpha_V = 49.5 * pow(10, -6);
 constexpr t_simfloat c_w_in = 2;    //c_w changes because the air can't go around as easily inside the railgun
 constexpr t_simfloat c_w_out = 1.05;
@@ -60,9 +60,9 @@ constexpr t_simfloat resistiv_pw = 1.678 * pow(10, -8);
 
 // Properties of powersupply
 constexpr bool ConstPower = false;
-constexpr t_simfloat C = 0.004175 * pow(10, 0);
-constexpr t_simfloat U0 = 4210;
-constexpr t_simfloat ConstR0 = 0.0505 * pow(10, -0);
+constexpr t_simfloat C = 0.016223 * pow(10, 1);
+constexpr t_simfloat U0 = 6000;
+constexpr t_simfloat ConstR0 = 0.505 * pow(10, -0);
 constexpr t_simfloat ConstRho = 1.678 * pow(10, -8);
 
 #pragma endregion constvars
@@ -133,6 +133,8 @@ t_simfloat speedmax;
 t_simfloat ExitVelocity;
 t_simfloat CapEnergy;
 t_simfloat ExitI;
+t_simfloat Discharged = false;
+t_simfloat DischargeTime;
 
 #pragma endregion simvars
 // -----------------------------
@@ -214,6 +216,7 @@ struct Datapoint {
     t_exportfloat R_r;
     t_exportfloat R;
     t_exportfloat ConstR;
+    t_exportfloat Q_tot;
 };
 #pragma endregion internaldefs
 
@@ -254,7 +257,7 @@ int main() {
     t_simfloat Atop_a = w_a * l_a;
     t_simfloat V_a = l_a * w_a * h_a;
     t_simfloat V0_a = V_a;
-    t_simfloat m_a = 0.009; //V_a * dens_a;
+    t_simfloat m_a = 0.010;//V_a * dens_a;
     t_simfloat R_a = (resistiv_a * l_a) / Aside_a;      //For R0, changes during simulating
     t_simfloat F_g = m_a * g;                           //Gravity doesn't change since mass doesn't change
 
@@ -339,10 +342,8 @@ int main() {
         Qtot += (E_tot - E_use);
 
         //Calculate heat of objects
-        Q_pl_d = (m_pl / (m_a + (2*m_pl) + (2*m_r))) * (E_tot - E_use);
-        Q_pl_u = (m_pl / (m_a + (2*m_pl) + (2*m_r))) * (E_tot - E_use);
-        Q_r = (m_r / (m_a + (2*m_pl) + (2*m_r))) * (E_tot - E_use);
-        Q_a = (m_a / (m_a + (2*m_pl) + (2*m_r))) * (E_tot - E_use); 
+        Q_r = (m_r / (m_a + (2*m_r))) * (E_tot - E_use);
+        Q_a = (m_a / (m_a + (2*m_r))) * (E_tot - E_use); 
         Q_a_tot += Q_a;
 
         //Calculate new temperatures
@@ -354,7 +355,7 @@ int main() {
         //Calculate pressure of armature
         dV_a = calc_dV(V0_a, alpha_V, T_a);
         V_a += dV_a;
-        P = 0.0000 * calc_P_eqs(dV_a, V0_a);
+        P = 0 * calc_P_eqs(dV_a, V0_a);
 
         //Calculate new resistances
         R_r = calc_R_obj(T_r, (dist + l_a), Afront_r);
@@ -375,7 +376,7 @@ int main() {
         datapoint->speed_x = speed;
         datapoint->speed_y = 0;
         datapoint->loc_x = dist;
-        datapoint->loc_y = 0;
+        datapoint->loc_y = height;
         datapoint->F_l = F_l;
         datapoint->I = I;
         datapoint->T_a = T_a;
@@ -384,6 +385,7 @@ int main() {
         datapoint->R_r = R_r;
         datapoint->R = R;
         datapoint->ConstR = ConstR;
+        datapoint->Q_tot = Qtot;
         // Flush the buffer to the disk if it is full
         if (datapoint_idx == DATAPOINTS_BUF_COUNT) {
             // Flush the buffer
@@ -391,8 +393,13 @@ int main() {
             datapoint_idx = 0; // Reset the buffer index back to the start
         }
 
+        // Store topspeed and discharge time (Time until 1% of initial current)
         if (speed > speedmax) {
             speedmax = speed;
+        }
+        if (I < (I0*0.01) && Discharged == false) {
+            DischargeTime = t;
+            Discharged = true;
         }
     }
 
@@ -412,7 +419,7 @@ int main() {
     loc_v[0] = dist;
     loc_v[1] = height;
 
-/*
+///*
     // -----------------------------
     // Simulation loop 2: Outside the railgun
     // -----------------------------
@@ -469,7 +476,8 @@ int main() {
             datapoint_idx = 0;
         }
     }
-*/
+//*/
+
     // -----------------------------
     // Finalize and cleanup
     // -----------------------------
@@ -507,9 +515,12 @@ int main() {
     std::cout << "SpeedMax: " << speedmax << "\n";
     std::cout << "Exit Velocity: " << ExitVelocity << "\n";
     std::cout << "Q_tot: " << Qtot << "\n";
-    std::cout << "m_tot: " << m_a + m_pl + (2*m_r) << "\n";
+    std::cout << "m_tot: " << m_a + (2*m_r) << "\n";
     std::cout << "V0_a: " << V0_a << "\n";
     std::cout << "V_a: " << V_a << "\n";
     std::cout << "ExitI: " << ExitI << "\n";
+    std::cout << "Q_a_tot: " << Q_a_tot << "\n"; 
+    std::cout << "m_r: " << m_r << "\n";
+    std::cout << "DischargeTime: " << DischargeTime << "\n";
     return 0;
 }

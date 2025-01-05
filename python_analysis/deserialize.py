@@ -17,8 +17,9 @@ class Datapoint:
     R_r: float
     R: float
     ConstR: float
+    Q_tot: float
 
-FIELD_COUNT = 13 # How many fields our datapoint struct has, this is used later
+FIELD_COUNT = 14 # How many fields our datapoint struct has, this is used later
 T_EXPORTFLOAT_SIZE = 8 # The size in bytes of the C++ t_exportfloat, a double is 8 bytes. The C++ program logs this size at startup
 POINT_SIZE = FIELD_COUNT * T_EXPORTFLOAT_SIZE # Calculate the size in bytes of a single datapoint
 
