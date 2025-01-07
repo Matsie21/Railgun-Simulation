@@ -15,7 +15,7 @@ using t_exportfloat = double;
 #pragma region constvars
 
 // General simulation settings
-constexpr t_simfloat dt_in = 1 * pow(10, -7);        // Timestep inside railgun
+constexpr t_simfloat dt_in = 1 * pow(10, -8);        // Timestep inside railgun
 constexpr t_simfloat dt_out = 1 * pow(10, -4);       // Timestep outside railgun
 constexpr t_simfloat height = 1;
 
@@ -30,19 +30,19 @@ constexpr t_simfloat mu_k = 1.1;
 
 // Properties of individual rails
 constexpr t_simfloat l_r = 2;
-constexpr t_simfloat w_r = 0.03;
-constexpr t_simfloat h_r = 0.03;
+constexpr t_simfloat w_r = 0.04;
+constexpr t_simfloat h_r = 0.06;
 constexpr t_simfloat dens_r = 8.933 * pow(10, 3);
 constexpr t_simfloat resistiv_r = 1.678 * pow(10, -8);
 constexpr t_simfloat SpecHeat_r = 383.9;
 
 // Properties of armature
-constexpr t_simfloat l_a = 0.05;
-constexpr t_simfloat w_a = 0.03;
-constexpr t_simfloat h_a = 0.03;
+constexpr t_simfloat l_a = 0.0114;
+constexpr t_simfloat w_a = 0.0114;
+constexpr t_simfloat h_a = 0.056;
 constexpr t_simfloat dens_a = 8.933 * pow(10, 3);
 constexpr t_simfloat resistiv_a = 1.678 * pow(10, -8);
-constexpr t_simfloat SpecHeat_a = 384;
+constexpr t_simfloat SpecHeat_a = 383.9;
 constexpr t_simfloat k_T = 140 * pow(10,9);             //Bulk modulus
 constexpr t_simfloat alpha_V = 49.5 * pow(10, -6);
 constexpr t_simfloat c_w_in = 2;    //c_w changes because the air can't go around as easily inside the railgun
@@ -60,9 +60,9 @@ constexpr t_simfloat resistiv_pw = 1.678 * pow(10, -8);
 
 // Properties of powersupply
 constexpr bool ConstPower = false;
-constexpr t_simfloat C = 0.016223 * pow(10, 1);
+constexpr t_simfloat C = 0.04333 * pow(10, 0);
 constexpr t_simfloat U0 = 6000;
-constexpr t_simfloat ConstR0 = 0.505 * pow(10, -0);
+constexpr t_simfloat ConstR0 = 0.00468 * pow(10, 0);
 constexpr t_simfloat ConstRho = 1.678 * pow(10, -8);
 
 #pragma endregion constvars
@@ -122,7 +122,6 @@ t_simfloat T_a = RoomTemp;
 t_simfloat T_r = RoomTemp;
 t_simfloat T_pl_u = RoomTemp;
 t_simfloat T_pl_d = RoomTemp;
-t_simfloat T_pw = RoomTemp;
 t_simfloat dV_a = 0;
 t_simfloat P = 0;
 
@@ -257,7 +256,7 @@ int main() {
     t_simfloat Atop_a = w_a * l_a;
     t_simfloat V_a = l_a * w_a * h_a;
     t_simfloat V0_a = V_a;
-    t_simfloat m_a = 0.010;//V_a * dens_a;
+    t_simfloat m_a = 0.770;//V_a * dens_a;
     t_simfloat R_a = (resistiv_a * l_a) / Aside_a;      //For R0, changes during simulating
     t_simfloat F_g = m_a * g;                           //Gravity doesn't change since mass doesn't change
 
