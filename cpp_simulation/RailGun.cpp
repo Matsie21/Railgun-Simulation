@@ -64,6 +64,7 @@ constexpr t_simfloat C = 0.04333 * pow(10, 0);
 constexpr t_simfloat U0 = 6000;
 constexpr t_simfloat ConstR0 = 0.00468 * pow(10, 0);
 constexpr t_simfloat ConstRho = 1.678 * pow(10, -8);
+constexpr t_simfloat dUdt = -1172400;
 
 #pragma endregion constvars
 // -----------------------------
@@ -81,7 +82,7 @@ t_simfloat dt = 0;
 // Positional variables
 t_simfloat acc = 0;
 t_simfloat speed = 0;
-t_simfloat dist = 0.18;
+t_simfloat dist = 0;
 t_simfloat ddist = 0;
 
 // Vector positional variables
@@ -149,6 +150,10 @@ inline t_simfloat calc_F_d(t_simfloat c_w, t_simfloat A, t_simfloat ProjectileSp
 // Current
 inline t_simfloat calc_I(t_simfloat CurrentZero, t_simfloat Resistance, t_simfloat Capacity) {
     return CurrentZero * expl((-1 * t) / (Resistance*Capacity));
+}
+
+inline t_simfloat calc_I_custom(t_simfloat Cap, t_simfloat dU) {
+    return Cap * dU;
 }
 
 // Lorentz force
@@ -306,7 +311,8 @@ int main() {
         F_d = calc_F_d(c_w_in, Afront_a, speed);
 
         //Calculate Lorentzforce
-        I = calc_I(I0, R, C);
+        //I = calc_I(I0, R, C);
+        I = calc_I_custom(C, dUdt);
         F_l = calc_F_l(I, IndGrad);
 
         //First check if static or moving for friction coefficient
