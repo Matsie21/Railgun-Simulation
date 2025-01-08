@@ -29,7 +29,7 @@ constexpr t_simfloat mu_s = 1.5;
 constexpr t_simfloat mu_k = 1.1;
 
 // Properties of individual rails
-constexpr t_simfloat l_r = 6;
+constexpr t_simfloat l_r = 2;
 constexpr t_simfloat w_r = 0.04;
 constexpr t_simfloat h_r = 0.06;
 constexpr t_simfloat dens_r = 8.933 * pow(10, 3);
@@ -60,9 +60,9 @@ constexpr t_simfloat resistiv_pw = 1.678 * pow(10, -8);
 
 // Properties of powersupply
 constexpr bool ConstPower = false;
-constexpr t_simfloat C = 0.9363885766;
-constexpr t_simfloat U0 = 4000;
-constexpr t_simfloat ConstR0 = 0.00468 * pow(10, 0) * .5666666666666666666666667;
+constexpr t_simfloat C = 0.4963885766;
+constexpr t_simfloat U0 = 6000;
+constexpr t_simfloat ConstR0 = 0.00468 * pow(10, 0) * .5666666666666666666666667 * 1.2 * 1.5;
 constexpr t_simfloat ConstRho = 1.678 * pow(10, -8);
 constexpr t_simfloat dUdt = -1172400;
 
@@ -263,7 +263,7 @@ int main() {
     t_simfloat Atop_a = w_a * l_a;
     t_simfloat V_a = l_a * w_a * h_a;
     t_simfloat V0_a = V_a;
-    t_simfloat m_a = 0.740;//V_a * dens_a;
+    t_simfloat m_a = 0.770;//V_a * dens_a;
     t_simfloat R_a = (resistiv_a * l_a) / Aside_a;      //For R0, changes during simulating
     t_simfloat F_g = m_a * g;                           //Gravity doesn't change since mass doesn't change
 
@@ -369,7 +369,7 @@ int main() {
         R_a = calc_R_obj(T_a, w_a, Aside_a);
         ConstR = calc_R_const(ConstR0, T_a);
 
-        R = R_a + R_pw + (2*R_r) + ConstR;
+        //R = R_a + R_pw + (2*R_r) + ConstR;
 
         //Increment time
         t += dt;
