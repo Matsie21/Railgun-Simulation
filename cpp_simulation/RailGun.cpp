@@ -4,7 +4,7 @@
 //
 //    All of these files are copyright-free and can be used however you want
 //
-//    The simulation is currently does not function as it is supposed and can only be used
+//    The simulation currently does not function as it is supposed to and can only be used
 //    to test certain variables relative to each other
 //
 //-------------------------------------------------------------------------------------------------------------------------
