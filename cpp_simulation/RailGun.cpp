@@ -135,6 +135,8 @@ t_simfloat CapEnergy;
 t_simfloat ExitI;
 t_simfloat Discharged = false;
 t_simfloat DischargeTime;
+t_simfloat KineticEnergy;
+t_simfloat RestEnergy;
 
 #pragma endregion simvars
 // -----------------------------
@@ -418,6 +420,11 @@ int main() {
     //Save exit velocity
     ExitVelocity = speed;
     ExitI = I;
+    KineticEnergy = 0.5 * m_a * powl(speed, 2);
+    Qtot = SpecHeat_a * (m_a + (2*m_r)) * (T_a - RoomTemp);
+
+    RestEnergy = CapEnergy - (KineticEnergy + Qtot);
+
 
     //Convert to vectors
     vel_v[0] = speed;
@@ -527,5 +534,7 @@ int main() {
     std::cout << "Q_a_tot: " << Q_a_tot << "\n"; 
     std::cout << "m_r: " << m_r << "\n";
     std::cout << "DischargeTime: " << DischargeTime << "\n";
+    std::cout << "Kinetic Energy: " << KineticEnergy << "\n";
+    std::cout << "RestEnergy: " << RestEnergy << "\n";
     return 0;
 }
