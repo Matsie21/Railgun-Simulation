@@ -21,8 +21,9 @@ def get_np_arrays(reader, x, y):
 def show_plot(reader, x, y):
     xpoints, ypoints = get_np_arrays(reader, x, y) # Convert our points into something matplotlib understands
     plt.plot(xpoints, ypoints) # Generate the plot with matplotlib
-    plt.xlabel("Time (s)")
-    plt.ylabel("Armature Temp (K)")
+    #Axis titles
+    plt.xlabel("Time (s)")      
+    plt.ylabel("Current (A)")
     plt.show() # Show the plot
 
 def main():
@@ -30,12 +31,12 @@ def main():
     plt.rcParams['figure.dpi'] = 100
 
     # Create our exportreader and tell it that the export file is located at specified path
-    reader = ExportReader(r"")
+    reader = ExportReader(r"[Your path to bin.exe]")
     # Generate a plot with data from reader
     show_plot(
         reader,
         lambda point: point.t, # x-axis
-        lambda point: point.T_a # y-axis
+        lambda point: point.I # y-axis
     )
 
 if __name__ == "__main__":

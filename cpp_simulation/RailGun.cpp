@@ -1,3 +1,24 @@
+//-------------------------------------------------------------------------------------------------------------------------
+//
+//    This simulation was developed for research for the Pre-U Honours Programme at the University of Twente
+//
+//    All of these files are copyright-free and can be used however you want
+//
+//    The simulation is currently does not function as it is supposed and can only be used
+//    to test certain variables relative to each other
+//
+//-------------------------------------------------------------------------------------------------------------------------
+
+/*
+
+    Variables can be added to the output variables with the following steps:
+    1. Add to datapoint struct
+    2. Add to datapoint store code in both loops
+    3. Add to the dataclass in deserialize.py
+    4. Increment FIELD_COUNT in deserialize.py
+
+*/
+
 #include <iostream>
 #include <cmath>
 #include <conio.h>
@@ -15,13 +36,15 @@ using t_exportfloat = double;
 #pragma region constvars
 
 // General simulation settings
-constexpr t_simfloat dt_in = 1 * pow(10, -6);        // Timestep inside railgun
-constexpr t_simfloat dt_out = 1 * pow(10, -3);       // Timestep outside railgun
+constexpr t_simfloat dt_in = 1 * pow(10, -7);        // Timestep inside railgun
+constexpr t_simfloat dt_out = 1 * pow(10, -4);       // Timestep outside railgun
+
+// Launch Height
 constexpr t_simfloat height = 1;
 
 // Standard units
 constexpr t_simfloat AirDens = 1.293;  // kg/m3
-constexpr t_simfloat g = 9.81;         // TODO g can be more precise than 9.81
+constexpr t_simfloat g = 9.81;
 constexpr t_simfloat RoomTemp = 293;   // In Kelvin
 
 // Friction coefficients between armature, and rails and plates
@@ -29,23 +52,23 @@ constexpr t_simfloat mu_s = 1.5;
 constexpr t_simfloat mu_k = 1.1;
 
 // Properties of individual rails
-constexpr t_simfloat l_r = 2;
-constexpr t_simfloat w_r = 0.04;
-constexpr t_simfloat h_r = 0.06;
+constexpr t_simfloat l_r = 1.610;
+constexpr t_simfloat w_r = 0.015;
+constexpr t_simfloat h_r = 0.015;
 constexpr t_simfloat dens_r = 8.933 * pow(10, 3);
 constexpr t_simfloat resistiv_r = 1.678 * pow(10, -8);
 constexpr t_simfloat SpecHeat_r = 383.9;
 
 // Properties of armature
-constexpr t_simfloat l_a = 0.0114;
-constexpr t_simfloat w_a = 0.0114;
-constexpr t_simfloat h_a = 0.056;
+constexpr t_simfloat l_a = 0.03;
+constexpr t_simfloat w_a = 0.0145;
+constexpr t_simfloat h_a = 0.0145;
 constexpr t_simfloat dens_a = 8.933 * pow(10, 3);
 constexpr t_simfloat resistiv_a = 1.678 * pow(10, -8);
 constexpr t_simfloat SpecHeat_a = 383.9;
 constexpr t_simfloat k_T = 140 * pow(10,9);             //Bulk modulus
 constexpr t_simfloat alpha_V = 49.5 * pow(10, -6);
-constexpr t_simfloat c_w_in = 2;    //c_w changes because the air can't go around as easily inside the railgun
+constexpr t_simfloat c_w_in = 2;                        //c_w changes because the air can't go around as easily inside the railgun
 constexpr t_simfloat c_w_out = 1.05;
 
 // Properties of plates
@@ -54,17 +77,14 @@ constexpr t_simfloat dens_pl = 8.933 * pow(10, 3);
 constexpr t_simfloat SpecHeat_pl =384;
 
 // Properties of power wires
-constexpr t_simfloat l_pw = 3;
+constexpr t_simfloat l_pw = 1;
 constexpr t_simfloat A_pw = 0.000314159265359;
 constexpr t_simfloat resistiv_pw = 1.678 * pow(10, -8);
 
 // Properties of powersupply
-constexpr bool ConstPower = false;
-constexpr t_simfloat C = 0.4963885766;
-constexpr t_simfloat U0 = 6000;
-constexpr t_simfloat ConstR0 = 0.00468 * pow(10, 0) * .5666666666666666666666667 * 1.2 * 1.5;
-constexpr t_simfloat ConstRho = 1.678 * pow(10, -8);
-constexpr t_simfloat dUdt = -1172400;
+constexpr t_simfloat C = 0.004175;
+constexpr t_simfloat U0 = 4210;
+constexpr t_simfloat ConstR0 = 0.0505;
 
 #pragma endregion constvars
 // -----------------------------
@@ -197,11 +217,6 @@ inline t_simfloat calc_R_obj(t_simfloat Temp, t_simfloat length, t_simfloat Area
             * pow(10, -8) * length) / Area;    
 }
 
-// Const R Temp Dependency
-inline t_simfloat calc_R_const(t_simfloat Res0, t_simfloat Temp) {
-    return Res0 * ((((0.0077*Temp) - 0.7175) * pow(10, -8))/(ConstRho));
-}
-
 #pragma endregion formulas
 // -----------------------------
 // Internal defs
@@ -263,7 +278,7 @@ int main() {
     t_simfloat Atop_a = w_a * l_a;
     t_simfloat V_a = l_a * w_a * h_a;
     t_simfloat V0_a = V_a;
-    t_simfloat m_a = 0.770;//V_a * dens_a;
+    t_simfloat m_a = V_a * dens_a;
     t_simfloat R_a = (resistiv_a * l_a) / Aside_a;      //For R0, changes during simulating
     t_simfloat F_g = m_a * g;                           //Gravity doesn't change since mass doesn't change
 
@@ -281,7 +296,7 @@ int main() {
     t_simfloat R_pw = (resistiv_pw * l_pw) / A_pw;
 
     // Electrical
-    t_simfloat R0 = R_a + R_pw + (2*R_r) + ConstR;       //Current flows through 2 rails
+    t_simfloat R0 = R_a + (2*R_r) + ConstR + R_pw;       //Current flows through 2 rails
     t_simfloat I0 = U0 / R0;
     R = R0;
     U = U0;
@@ -314,7 +329,6 @@ int main() {
 
         //Calculate Lorentzforce
         I = calc_I(I0, R, C);
-        //I = calc_I_custom(C, dUdt);
         F_l = calc_F_l(I, IndGrad);
 
         //First check if static or moving for friction coefficient
@@ -367,9 +381,8 @@ int main() {
         //Calculate new resistances
         R_r = calc_R_obj(T_r, (dist + l_a), Afront_r);
         R_a = calc_R_obj(T_a, w_a, Aside_a);
-        ConstR = calc_R_const(ConstR0, T_a);
 
-        //R = R_a + R_pw + (2*R_r) + ConstR;
+        R = R_a + (2*R_r) + ConstR + R_pw ;
 
         //Increment time
         t += dt;
@@ -404,7 +417,7 @@ int main() {
         if (speed > speedmax) {
             speedmax = speed;
         }
-        if (I < (I0*0.01) && Discharged == false) {
+        if (I < (230000) && Discharged == false) {
             DischargeTime = t;
             Discharged = true;
         }
@@ -417,7 +430,7 @@ int main() {
     t_simfloat Efficiency = E_kin / E_cap;
     std::cout << "Total Efficiency: " << Efficiency << "\n";
 
-    //Save exit velocity
+    //Save debug variables
     ExitVelocity = speed;
     ExitI = I;
     KineticEnergy = 0.5 * m_a * powl(speed, 2);
@@ -431,12 +444,15 @@ int main() {
     loc_v[0] = dist;
     loc_v[1] = height;
 
+
+
+// Remove first 2 comment slashes below to comment out the second loop (Same underneath this function)
 ///*
     // -----------------------------
     // Simulation loop 2: Outside the railgun
     // -----------------------------
     dt = dt_out;
-    while (false && speed >= 1 && loc_v[1] > 0) {
+    while (speed >= 1 && loc_v[1] > 0) {
         // Calculate drag in both directions
         F_d_v[0] = calc_F_d(c_w_out, Afront_a, vel_v[0]);
         F_d_v[1] = calc_F_d(c_w_out, Atop_a, vel_v[1]);
@@ -488,7 +504,9 @@ int main() {
             datapoint_idx = 0;
         }
     }
-//*/
+
+// Remove first 2 comment slashes below to comment out the second loop
+//*/        
 
     // -----------------------------
     // Finalize and cleanup
@@ -536,5 +554,7 @@ int main() {
     std::cout << "DischargeTime: " << DischargeTime << "\n";
     std::cout << "Kinetic Energy: " << KineticEnergy << "\n";
     std::cout << "RestEnergy: " << RestEnergy << "\n";
+    std::cout << "R_a: " << R_a << "\n";
+    std::cout << "R_r: " << R_r << "\n"; 
     return 0;
 }
