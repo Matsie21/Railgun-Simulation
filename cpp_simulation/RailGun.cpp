@@ -15,8 +15,8 @@ using t_exportfloat = double;
 #pragma region constvars
 
 // General simulation settings
-constexpr t_simfloat dt_in = 1 * pow(10, -8);        // Timestep inside railgun
-constexpr t_simfloat dt_out = 1 * pow(10, -4);       // Timestep outside railgun
+constexpr t_simfloat dt_in = 1 * pow(10, -6);        // Timestep inside railgun
+constexpr t_simfloat dt_out = 1 * pow(10, -3);       // Timestep outside railgun
 constexpr t_simfloat height = 1;
 
 // Standard units
@@ -29,7 +29,7 @@ constexpr t_simfloat mu_s = 1.5;
 constexpr t_simfloat mu_k = 1.1;
 
 // Properties of individual rails
-constexpr t_simfloat l_r = 2;
+constexpr t_simfloat l_r = 6;
 constexpr t_simfloat w_r = 0.04;
 constexpr t_simfloat h_r = 0.06;
 constexpr t_simfloat dens_r = 8.933 * pow(10, 3);
@@ -60,9 +60,9 @@ constexpr t_simfloat resistiv_pw = 1.678 * pow(10, -8);
 
 // Properties of powersupply
 constexpr bool ConstPower = false;
-constexpr t_simfloat C = 0.04333 * pow(10, 0);
-constexpr t_simfloat U0 = 6000;
-constexpr t_simfloat ConstR0 = 0.00468 * pow(10, 0);
+constexpr t_simfloat C = 0.9363885766;
+constexpr t_simfloat U0 = 4000;
+constexpr t_simfloat ConstR0 = 0.00468 * pow(10, 0) * .5666666666666666666666667;
 constexpr t_simfloat ConstRho = 1.678 * pow(10, -8);
 constexpr t_simfloat dUdt = -1172400;
 
@@ -263,7 +263,7 @@ int main() {
     t_simfloat Atop_a = w_a * l_a;
     t_simfloat V_a = l_a * w_a * h_a;
     t_simfloat V0_a = V_a;
-    t_simfloat m_a = 0.770;//V_a * dens_a;
+    t_simfloat m_a = 0.740;//V_a * dens_a;
     t_simfloat R_a = (resistiv_a * l_a) / Aside_a;      //For R0, changes during simulating
     t_simfloat F_g = m_a * g;                           //Gravity doesn't change since mass doesn't change
 
@@ -313,8 +313,8 @@ int main() {
         F_d = calc_F_d(c_w_in, Afront_a, speed);
 
         //Calculate Lorentzforce
-        //I = calc_I(I0, R, C);
-        I = calc_I_custom(C, dUdt);
+        I = calc_I(I0, R, C);
+        //I = calc_I_custom(C, dUdt);
         F_l = calc_F_l(I, IndGrad);
 
         //First check if static or moving for friction coefficient
@@ -436,7 +436,7 @@ int main() {
     // Simulation loop 2: Outside the railgun
     // -----------------------------
     dt = dt_out;
-    while (speed >= 1 && loc_v[1] > 0) {
+    while (false && speed >= 1 && loc_v[1] > 0) {
         // Calculate drag in both directions
         F_d_v[0] = calc_F_d(c_w_out, Afront_a, vel_v[0]);
         F_d_v[1] = calc_F_d(c_w_out, Atop_a, vel_v[1]);
